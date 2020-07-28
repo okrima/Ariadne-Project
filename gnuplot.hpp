@@ -32,57 +32,78 @@
 
 namespace Ariadne{
 
-struct ImageSize2D {
-    Nat nx, ny;
-    ImageSize2D(Nat _nx, Nat _ny) : nx(_nx), ny(_ny) {}
-    ImageSize2D(Nat _nx, Nat _ny) {
-        ARIADNE_ASSERT(_nx > 0 && _ny > 0);
-        nx = static_assert<Nat>(_nx);
-        ny = static_assert<Nat>(_ny);
-    }
-};
-
 enum _Colours // %c - es: lc, fc
 {
+    white,
+    black,
+    dark_grey,
     red,
+    light_red,
+    dark_red,
+    web_blue,
     blue,
+    light_blue,
+    steelblue,
     green,
+    dark_green,
+    light_green,
+    web_green,
+    dark_spring_green,
     yellow,
+    dark_yellow,
     magenta,
-    cyan
+    light_magenta,
+    dark_magenta,
+    cyan,
+    light_cyan,
+    dark_cyan,
+    dark_orange
 };
 
-const char *_colours[] = {"red", "blue", "green", "yellow", "magenta", "cyan"};
+const char *_colours[] = {"white", "black", "dark-grey", "red", 
+    "light-red", "dark-red", "web_blue", "blue", "light-blue",
+    "steelblue", "green", "dark-green", "light-green", "web-green",
+    "dark-spring-green", "yellow","dark-yellow", "magenta", 
+    "light-magenta", "dark-magenta", "cyan", "light-cyan", 
+    "dark-cyan", "dark-orange"};
 
 enum _LineStyle2D // %s - es: ls, fs
 {
-    line,
-    dot,
-    dash,
-    point,
-    linepoints, //lp
-    solid,
-    impulses,
-    style1, //1
-    style2, //2
-    style3, //3
-    style4,  //4
-    //filled  // filledcurves
+    lines,
+    linespoints, //lp
+    //points,
+    //dots,
+    //steps,
+    //impulses,
+
 };
 
-const char *_linestyle2D[] = {"line", "dot", "dash", "point", "linepoints", "solid", "impulses"
-                                "ls 1", "ls 2", "ls 3", "ls 4", "ls 5",};
+struct _Line2D
+{
+    _LineStyle2D style;
+    const int lw = 1;
+    const int ls = 1;
+};
+
+const char *_linestyle2D[] = {"lines", "linespoints"};// "points", "dots", "steps", "impulses"};
 
 enum _LineStyle3D // %s - es: ls, fs
 {
-    line,
+    lines,
     surface,
-    point,
-    impulse,
-    solid   //pm3d
+    points,
+    //impulse,
+    //solid   //pm3d
 };
 
-const char *_linestyle3D[] = {"line", "surface", "point", "impulse", "solid"};
+struct _Line3D
+{
+    _LineStyle3D style;
+    const int lw = 1;
+    const int ls = 1;
+}
+
+const char *_linestyle3D[] = {"lines", "surface", "point",/* "impulse", "solid"*/};
 
 /*
 enum _DimPlot
@@ -143,8 +164,8 @@ struct _Range3D
 struct Image2D
 {
     _Colours colour;
-    _LineStyle2D linestyle2D;
-    const int linewidth;
+    _Line2D linestyle2D;
+    //const int linewidth;
     //_DimPlot dim;
     _Label2D label;
     _Format format;
@@ -157,17 +178,20 @@ struct Image2D
 struct Image3D
 {
     _Colours colour;
-    _LineStyle3D linestyle3D;
-    const int linewidth;
+    _Line3D linestyle3D;
+    //const int linewidth;
     //_DimPlot dim;
     _Label3D label;
     _Format format;
-    _Range3D range2D;
+    _Range3D range3D;
     _Size size;
     String nameFile;
     
 };
 
+//Command
+// show colorname
+// test
 
 class GnuplotCanvas
 {
@@ -186,20 +210,26 @@ public:
     //Create canvas with dimensions
     GnuplotCanvas(const Image2D& image, const int sizeX, const int sizeY);
     // 2D Plot
-    void plot2D(Image2D& image); //pag. 100
+    void plot2D(Image2D& image, Array<double> data); // Fix gp.send1D
     //splot()
+
+    // Set X, Y range
     void setRange2D(Image2D& image, const int minX, const int maxX, 
                 const int minY, const int maxY);
+    // Set X, Y, Z range
     void setRange3D(Image3D& image, const int minX, const int maxX, 
                 const int minY, const int maxY,
                 const int minZ, const int maxZ);
-    //TODO from p.119
+    // Set Line style with parameter
+    void setLineStyle(Image2D& image, _Line2D line, const int ls, const int lw);
+    // Set line with parameter
+    void setLineStyle(Image3D& image, _Line3D line, const int ls, const int lw);
+    // set surface with no parameter
+    void setLineStyle(Image3D& image, _Line3D line);
+    // Set Colour
+    void setColour(Image2D& image, _Colours color);
 
 };
-
-GnuplotCanvas::GnuplotCanvas(/* args */)
-{
-}
 
 GnuplotCanvas::~GnuplotCanvas()
 {

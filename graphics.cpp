@@ -599,7 +599,7 @@ GnuplotCanvas::GnuplotCanvas(Image2D& image, const int sizeX, const int sizeY)
     image.size.sizeY = sizeY;
 }
 
-GnuplotCanvas::plot2D(Image2D& image)
+GnuplotCanvas::plot2D(Image2D& image, Array<double> data)
 {
     Gnuplot gp;
 
@@ -616,20 +616,93 @@ GnuplotCanvas::plot2D(Image2D& image)
     gp << "set output '" << image.nameFile << "'." << _format[image.format] << "\n";
     
     // set XY label and title
-    gp << "set xlabel '" << image.label.xLabel << "'\n";
-    gp << "set ylabel '" << image.label.yLabel << "'\n";
-    gp << "set title '" << image.label.title << "'\n";
-
+    if (!image.label.xLabel.empty()){
+        gp << "set xlabel '" << image.label.xLabel << "'\n";
+    }if (!image.label.yLabel.empty()){
+        gp << "set ylabel '" << image.label.yLabel << "'\n";
+    }if (!image.label.title.empty()){
+        gp << "set title '" << image.label.title << "'\n";
+    }
     // START PLOT SINTAX
     // set Range
     gp << "plot [" << to_string(image.range2D.Xmin) << ":" << to_string(image.range2D.Xmax) << "] [" <<
-            to_string(image.range2D.Ymin) << ":" << to_string(image.range2D.Ymax) << "]";
+            to_string(image.range2D.Ymin) << ":" << to_string(image.range2D.Ymax) << "] ";
     
-    // TODO
-    // 1 - Finish the simple plot sintax
-    // 2 - Continue to build the member function from p. 119
+    // Gnuplot wait for input 
+    gp << "- ";
+    // set linestyle
+    gp << "with " << _linestyle2D[image.linestyle2D.style] << " ls " << to_string(image.linestyle2D.ls) <<
+        " lw " << to_string(image.linestyle2D.lw);
+    
+    // set colour
+    gp << " rgb " << _colours[image.colour] << "\n";
+
+    gp.send1d();
 
 }
+
+GnuplotCanvas::setRange2D(Image2D& image, const int minX, const int maxX, 
+                const int minY, const int maxY)
+{
+    ARIADNE_ASSERT(minX < maxX);
+    ARIADNE_ASSERT(minY < maxY);
+    image.range2D.Xmin = minX;
+    image.range2D.Xmax = maxX;
+    image.range2D.Ymin = minY;
+    image.range2D.Ymax = maxY;
+}
+
+GnuplotCanvas::setRange3D(Image3D& image, const int minX, const int maxX, 
+                const int minY, const int maxY,
+                const int minZ, const int maxZ)
+{
+    ARIADNE_ASSERT(minX < maxX);
+    ARIADNE_ASSERT(minY < maxY);
+    ARIADNE_ASSERT(minZ < maxZ);
+    image.range3D.Xmin = minX;
+    image.range3D.Xmax = maxX;
+    image.range3D.Ymin = minY;
+    image.range3D.Ymax = maxY;
+    image.range3D.Zmin = minZ;
+    image.range3D.Zmax = maxZ;
+}
+
+GnuplotCanvas::setLineStyle(Image2D& image, _Line2D line, const int ls, const int lw)
+{
+    image.linestyle2D.style = line.style;
+    ARIADNE_ASSERT(lw > 0);
+    ARIADNE_ASSERT(lw < 7);
+    image.linestyle2D.lw = lw;
+    ARIADNE_ASSERT(ls > 0);
+    ARIADNE_ASSERT(ls < 7);
+    image.linestyle2D.ls = ls;
+}
+
+GnuplotCanvas::setLineStyle(Image3D& image, _Line3D line, const int ls, const int lw)
+{
+    image.linestyle2D.style = line.style;
+    ARIADNE_ASSERT(lw > 0);
+    ARIADNE_ASSERT(lw < 7);
+    image.linestyle2D.lw = lw;
+    ARIADNE_ASSERT(ls > 0);
+    ARIADNE_ASSERT(ls < 7);
+    image.linestyle2D.ls = ls;
+}
+//surface
+GnuplotCanvas::setLineStyle(Image3D& image, _Line3D line)
+{
+    image.linestyle2D.style = line.style;
+}
+
+// Set colour
+GnuplotCanvas::setColour(Image2D& image, _Colours color)
+{
+    image.colour = color;
+}
+
+// TODO
+// 1 - Continue to build the member function from p. 119
+// 2 - Fix gp.send1d()
 
 } // namespace Ariadne
 
