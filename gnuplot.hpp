@@ -27,6 +27,7 @@
 #include "../config.hpp"
 #include "../utility/string.hpp"
 #include <string>
+#include <ctype.h>
 
 #include "gnuplot-iostream.h"
 
@@ -34,8 +35,8 @@ namespace Ariadne{
 
 enum _Colours // %c - es: lc, fc
 {
-    white,
     black,
+    white,
     dark_grey,
     red,
     light_red,
@@ -60,7 +61,7 @@ enum _Colours // %c - es: lc, fc
     dark_orange
 };
 
-const char *_colours[] = {"white", "black", "dark-grey", "red", 
+const char *_colours[] = {"black", "white", "dark-grey", "red", 
     "light-red", "dark-red", "web_blue", "blue", "light-blue",
     "steelblue", "green", "dark-green", "light-green", "web-green",
     "dark-spring-green", "yellow","dark-yellow", "magenta", 
@@ -145,19 +146,19 @@ struct _Label3D
 
 struct _Range2D
 {
-    const int Xmin;
+    const int Xmin = 0;
     const int Xmax;
-    const int Ymin;
+    const int Ymin = 0;
     const int Ymax;
 };
 
 struct _Range3D
 {
-    const int Xmin;
+    const int Xmin = 0;
     const int Xmax;
-    const int Ymin;
+    const int Ymin = 0;
     const int Ymax;
-    const int Zmin;
+    const int Zmin = 0;
     const int Zmax;
 };
 
@@ -200,8 +201,8 @@ private:
     //Image3D *image3D;
     //double lw, dr;  // Line width and Dot radius
     //Colour lc, fc;  // Line colour and Fill colour
-protected: 
-    bool noCanvas;
+protected:  
+    bool noCanvas = true;
 public:
     ~GnuplotCanvas();
     // Constructors - Create the canvas
@@ -213,6 +214,7 @@ public:
     void plot2D(Image2D& image, Array<double> data); // Fix gp.send1D
     //splot()
 
+    void setRange2D(Image2D& image, const int maxX, const int maxY);
     // Set X, Y range
     void setRange2D(Image2D& image, const int minX, const int maxX, 
                 const int minY, const int maxY);
@@ -228,6 +230,30 @@ public:
     void setLineStyle(Image3D& image, _Line3D line);
     // Set Colour
     void setColour(Image2D& image, _Colours color);
+    // Set colour with '#abcdef'
+    void setColour(Image2D& image, String color);
+    // Set X Log axis
+    void setXLogAxis(Gnuplot& gp);
+    // Set Y Log axis
+    void setYLogAxis(Gnuplot& gp);
+    // Set XY Log axis
+    void setXYLogAxis(Gnuplot& gp);
+    // Set XZ Log axis
+    void setXZLogAxis(Gnuplot& gp);
+    // Set YZ Log axis
+    void setYZLogAxis(Gnuplot& gp);
+    // Set XYZ Log axis
+    void setXYZLogAxis(Gnuplot& gp);
+    // Set Legend
+    void setLegend(Gnuplot& gp);
+    // Set View Projection of a 3D rapresentation
+    // Projection XY
+    void setViewXY(Gnuplot& gp);
+    // Projection XZ
+    void setViewXZ(Gnuplot& gp);
+    //Projection YZ
+    void setViewYZ(Gnuplot& gp);
+
 
 };
 

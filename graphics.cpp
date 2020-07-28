@@ -625,20 +625,39 @@ GnuplotCanvas::plot2D(Image2D& image, Array<double> data)
     }
     // START PLOT SINTAX
     // set Range
-    gp << "plot [" << to_string(image.range2D.Xmin) << ":" << to_string(image.range2D.Xmax) << "] [" <<
-            to_string(image.range2D.Ymin) << ":" << to_string(image.range2D.Ymax) << "] ";
-    
+    if (!to_string(image.range2D.Xmax).empty()){
+        gp << "plot [" << to_string(image.range2D.Xmin) << ":" << to_string(image.range2D.Xmax) << "] ";
+    }else
+    {
+        gp << "plot [ ] ";
+    }
+    if (!to_string(image.range2D.Ymax).empty()){
+        gp << "[" << to_string(image.range2D.Ymin) << ":" << to_string(image.range2D.Ymax) << "] ";
+    }
+    else
+    {
+        gp << "[ ] ";
+    }
+     
     // Gnuplot wait for input 
-    gp << "- ";
+    gp << "'-' ";
     // set linestyle
     gp << "with " << _linestyle2D[image.linestyle2D.style] << " ls " << to_string(image.linestyle2D.ls) <<
         " lw " << to_string(image.linestyle2D.lw);
     
     // set colour
-    gp << " rgb " << _colours[image.colour] << "\n";
+    gp << " rgb '" << _colours[image.colour] << "'\n";
 
     gp.send1d();
 
+}
+
+GnuplotCanvas::setRange2D(Image2D& image, const int maxX, const int max Y)
+{
+    image.range2D.Xmin = 0;
+    image.range2D.Xmax = maxX;
+    image.range2D.Ymin = 0;
+    image.range2D.Ymax = maxY;
 }
 
 GnuplotCanvas::setRange2D(Image2D& image, const int minX, const int maxX, 
@@ -664,6 +683,16 @@ GnuplotCanvas::setRange3D(Image3D& image, const int minX, const int maxX,
     image.range3D.Ymin = minY;
     image.range3D.Ymax = maxY;
     image.range3D.Zmin = minZ;
+    image.range3D.Zmax = maxZ;
+}
+
+GnuplotCanvas::setRange3D(Image3D& image, const int maxX, const int maxY, const int maxZ)
+{
+    image.range3D.Xmin = 0;
+    image.range3D.Xmax = maxX;
+    image.range3D.Ymin = 0;
+    image.range3D.Ymax = maxY;
+    image.range3D.Zmin = 0;
     image.range3D.Zmax = maxZ;
 }
 
@@ -698,6 +727,58 @@ GnuplotCanvas::setLineStyle(Image3D& image, _Line3D line)
 GnuplotCanvas::setColour(Image2D& image, _Colours color)
 {
     image.colour = color;
+}
+
+GnuplotCanvas::setXLogAxis(Gnuplot& gp)
+{
+    gp << "set logscale x\n";
+}
+
+GnuplotCanvas::setYLogAxis(Gnuplot& gp)
+{
+    gp << "set logscale y\n";
+}
+
+GnuplotCanvas::setXYLogAxis(Gnuplot& gp)
+{
+    gp << "set logscale xy\n";
+}
+
+GnuplotCanvas::setXZLogAxis(Gnuplot& gp)
+{
+    gp << "set logscale xz\n";
+}
+
+GnuplotCanvas::setYZLogAxis(Gnuplot& gp)
+{
+    gp << "set logscale yz\n";
+}
+
+GnuplotCanvas::setXYZLogAxis(Gnuplot& gp)
+{
+    gp << "set logscale xyz\n";
+}
+
+GnuplotCanvas::setLegend(Gnuplot& gp)
+{
+    gp << "set key default\n";
+}
+
+GnuplotCanvas::setViewXY(Gnuplot& gp)
+{
+    gp << "set view projection xy\n";
+}
+
+GnuplotCanvas::setViewXZ(Gnuplot& gp)
+{
+    gp << "set view projection xz\n";
+  
+}
+
+GnuplotCanvas::setViewYZ(Gnuplot& gp)
+{
+    gp << "set view projection yz\n";
+    
 }
 
 // TODO
