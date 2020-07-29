@@ -599,37 +599,26 @@ GnuplotCanvas::GnuplotCanvas(Image2D& image, const int sizeX, const int sizeY)
     image.size.sizeY = sizeY;
 }
 
-GnuplotCanvas::plot2D(Image2D& image, Array<double> data)
+GnuplotCanvas::GnuplotCanvas(Image3D& image, const int sizeX, const int sizeY)
 {
-    Gnuplot gp;
+    ARIADNE_ASSERT(sizeX >= 0);
+    ARIADNE_ASSERT(sizeY >= 0);
 
-    if noCanvas == true
-    {
-        gp << "set term " << _format[image.format] << "\n"; // If no dimensions
-    }
-    else    
-    {// otherwise
-        gp << "set term " << _format[image.format] << "size " << to_string(image.size.sizeX) << " " <<
-            to_string(image.size.sizeY) << "\n";
-    }
-    // create file
-    gp << "set output '" << image.nameFile << "'." << _format[image.format] << "\n";
-    
-    // set XY label and title
-    if (!image.label.xLabel.empty()){
-        gp << "set xlabel '" << image.label.xLabel << "'\n";
-    }if (!image.label.yLabel.empty()){
-        gp << "set ylabel '" << image.label.yLabel << "'\n";
-    }if (!image.label.title.empty()){
-        gp << "set title '" << image.label.title << "'\n";
-    }
+    image.size.sizeX = sizeX;
+    image.size.sizeY = sizeY;
+}
+
+
+GnuplotCanvas::plot2D(Gnuplot& gp, Image2D& image, Array<double> data)
+{
     // START PLOT SINTAX
+    gp << "plot ";
     // set Range
     if (!to_string(image.range2D.Xmax).empty()){
-        gp << "plot [" << to_string(image.range2D.Xmin) << ":" << to_string(image.range2D.Xmax) << "] ";
+        gp << "[" << to_string(image.range2D.Xmin) << ":" << to_string(image.range2D.Xmax) << "] ";
     }else
     {
-        gp << "plot [ ] ";
+        gp << "[ ] ";
     }
     if (!to_string(image.range2D.Ymax).empty()){
         gp << "[" << to_string(image.range2D.Ymin) << ":" << to_string(image.range2D.Ymax) << "] ";
@@ -648,8 +637,116 @@ GnuplotCanvas::plot2D(Image2D& image, Array<double> data)
     // set colour
     gp << " rgb '" << _colours[image.colour] << "'\n";
 
-    gp.send1d();
+    gp.send1d(data);
 
+}
+
+GnuplotCanvas::plot3D(Gnuplot& gp, Image3D& image, Matrix<double> data)
+{
+    // START PLOT SINTAX
+    gp << "splot ";
+    // get Range
+    if (!to_string(image.range3D.Xmax).empty()){
+        gp << "[" << to_string(image.range3D.Xmin) << ":" << to_string(image.range3D.Xmax) << "] ";
+    }else
+    {
+        gp << "[ ] ";
+    }
+    if (!to_string(image.range3D.Ymax).empty()){
+        gp << "[" << to_string(image.range3D.Ymin) << ":" << to_string(image.range3D.Ymax) << "] ";
+    }
+    else
+    {
+        gp << "[ ] ";
+    }
+    if (!to_string(image.range3D.Zmax).empty()){
+        gp << "[" << to_string(image.range3D.Zmin) << ":" << to_string(image.range3D.Zmax) << "] ";
+    }
+    else
+    {
+        gp << "[ ] ";
+    }
+     
+    // Gnuplot wait for input 
+    gp << "'-' ";
+    
+    // get linestyle
+    gp << "with " << _linestyle3D[image.linestyle3D.style];
+    if (image.linestyle3D.style != surface)
+    {
+        gp << " ls " << to_string(image.linestyle3D.ls) << " lw " << to_string(image.linestyle2D.lw);
+    }
+ 
+    // get colour
+    gp << " rgb '" << _colours[image.colour] << "'\n";
+
+    //gp.send2d();
+
+}
+
+GnuplotCanvas::setTerminal(Gnuplot& gp, Image2D& image, _Format format, String nameFile)
+{
+    if noCanvas == true
+    {
+        gp << "set term " << _format[format] << "\n"; // If no dimensions
+    }
+    else    
+    {// otherwise
+        gp << "set term " << _format[format] << "size " << to_string(image.size.sizeX) << " " <<
+            to_string(image.size.sizeY) << "\n";
+    }
+    // create file
+    gp << "set output '" << nameFile << "'." << _format[format] << "\n";
+}
+
+GnuplotCanvas::setTerminal(Gnuplot& gp, Image3D& image, _Format format, String nameFile)
+{
+    if noCanvas == true
+    {
+        gp << "set term " << _format[format] << "\n"; // If no dimensions
+    }
+    else    
+    {// otherwise
+        gp << "set term " << _format[format] << "size " << to_string(image.size.sizeX) << " " <<
+            to_string(image.size.sizeY) << "\n";
+    }
+    // create file
+    gp << "set output '" << nameFile << "'." << _format[format] << "\n";
+}
+
+GnuplotCanvas::setLabels(Gnuplot& gp, String xLabel)
+{
+    gp << "set xlabel '" << xLabel << "'\n";
+}
+
+GnuplotCanvas::setLabels(Gnuplot& gp, String yLabel)
+{
+    gp << "set ylabel '" << yLabel << "'\n";
+}
+
+GnuplotCanvas::setLabels(Gnuplot& gp, String zLabel)
+{
+    gp << "set zlabel '" << zLabel << "'\n";
+}
+
+GnuplotCanvas::setLabels(Gnuplot& gp, String title)
+{
+    gp << "set title '" << title << "'\n";
+}
+
+GnuplotCanvas::setLabels(Gnuplot& gp, String xLabel, String yLabel, String zLabel)
+{
+    gp << "set xlabel '" << xLabel << "'\n";
+    gp << "set ylabel '" << yLabel << "'\n";
+    gp << "set zlabel '" << zLabel << "'\n";
+}
+
+GnuplotCanvas::setLabels(Gnuplot& gp, String xLabel, String yLabel, String zLabel, String title)
+{
+    gp << "set xlabel '" << xLabel << "'\n";
+    gp << "set ylabel '" << yLabel << "'\n";
+    gp << "set zlabel '" << zLabel << "'\n";
+    gp << "set title '" << title << "'\n";
 }
 
 GnuplotCanvas::setRange2D(Image2D& image, const int maxX, const int max Y)
@@ -772,14 +869,13 @@ GnuplotCanvas::setViewXY(Gnuplot& gp)
 GnuplotCanvas::setViewXZ(Gnuplot& gp)
 {
     gp << "set view projection xz\n";
-  
 }
 
 GnuplotCanvas::setViewYZ(Gnuplot& gp)
 {
-    gp << "set view projection yz\n";
-    
+    gp << "set view projection yz\n";  
 }
+
 
 // TODO
 // 1 - Continue to build the member function from p. 119

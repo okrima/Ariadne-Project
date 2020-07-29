@@ -36,7 +36,6 @@ namespace Ariadne{
 enum _Colours // %c - es: lc, fc
 {
     black,
-    white,
     dark_grey,
     red,
     light_red,
@@ -61,7 +60,7 @@ enum _Colours // %c - es: lc, fc
     dark_orange
 };
 
-const char *_colours[] = {"black", "white", "dark-grey", "red", 
+const char *_colours[] = {"black", "dark-grey", "red", 
     "light-red", "dark-red", "web_blue", "blue", "light-blue",
     "steelblue", "green", "dark-green", "light-green", "web-green",
     "dark-spring-green", "yellow","dark-yellow", "magenta", 
@@ -129,13 +128,16 @@ struct _Size
     const int sizeY;
 };
 
+/*
 struct _Label2D
 {
     const String title;
     const String xLabel;
     const String yLabel;
 };
+*/
 
+/*
 struct _Label3D
 {
     const String title;
@@ -143,6 +145,7 @@ struct _Label3D
     const String yLabel;
     const String zLabel;
 };
+*/
 
 struct _Range2D
 {
@@ -168,11 +171,8 @@ struct Image2D
     _Line2D linestyle2D;
     //const int linewidth;
     //_DimPlot dim;
-    _Label2D label;
-    _Format format;
     _Range2D range2D;
     _Size size;
-    String nameFile;
 
 };
 
@@ -182,11 +182,8 @@ struct Image3D
     _Line3D linestyle3D;
     //const int linewidth;
     //_DimPlot dim;
-    _Label3D label;
-    _Format format;
     _Range3D range3D;
     _Size size;
-    String nameFile;
     
 };
 
@@ -210,13 +207,26 @@ public:
     GnuplotCanvas();
     //Create canvas with dimensions
     GnuplotCanvas(const Image2D& image, const int sizeX, const int sizeY);
+    GnuplotCanvas(const Image3D& image, const int sizeX, const int sizeY);
     // 2D Plot
     void plot2D(Image2D& image, Array<double> data); // Fix gp.send1D
-    //splot()
-
-    void setRange2D(Image2D& image, const int maxX, const int maxY);
+    // 3D Plot
+    void plot3D(Image3D& image, Matrix<double> data); // Fix gp.send
+    // Set Terminal output 2D
+    void setTerminal(Gnuplot& gp, Image2D& image, _Format format, String nameFile);
+    // Set Terminal output 3D
+    void setTerminal(Gnuplot& gp, Image3D& image, _Format format, String nameFile)
+    // Set Title and Label
+    void setLabels(Gnuplot& gp, String xLabel);
+    void setLabels(Gnuplot& gp, String yLabel);
+    void setLabels(Gnuplot& gp, String zLabel);
+    void setLabels(Gnuplot& gp, String title);
+    void setLabels(Gnuplot& gp, String xLabel, String yLabel, String zLabel);
+    void setLabels(Gnuplot& gp, String xLabel, String yLabel, String zLabel, String title);
     // Set X, Y range
-    void setRange2D(Image2D& image, const int minX, const int maxX, 
+    void setRange2D(Gnuplot& gp, Image2D& image, const int maxX, const int maxY);
+    // Set X, Y range
+    void setRange2D(Gnuplot& gp, Image2D& image, const int minX, const int maxX, 
                 const int minY, const int maxY);
     // Set X, Y, Z range
     void setRange3D(Image3D& image, const int minX, const int maxX, 
