@@ -47,37 +47,41 @@ int main(int argc, const char** argv) {
 
     Real Nx = 41;                // # point in space
 
-    String tempStr;
+    //String tempStr;
 
-    tempStr = to_string(Nx.get_d() - 1);
+    //tempStr = to_string(Nx.get_d() - 1);
 
     //Real Zero = 0;
 
-    pde_solution_1D solution;
+    //pde_solution_1D solution;
     string1D stringModel;
 
     //Solution variable
-    Array<Real> u(Nx.get_d());   // Next value
-    Array<Real> u_1(Nx.get_d()); // Current value
-    Array<Real> u_2(Nx.get_d()); // Past value
+    //Array<Real> u(Nx.get_d(), 0);   // Next value
+    //Array<Real> u_1(Nx.get_d(), 0); // Current value
+    //Array<Real> u_2(Nx.get_d(), 0); // Past value
 
-    solution.nextV = u;
-    solution.currV = u_1;
-    solution.prevV = u_2;
+    //solution.nextV = u;
+    //solution.currV = u_1;
+    //solution.prevV = u_2;
 
-    Array<double> sol1D(Nx.get_d());
+    //Array<double> sol1D(Nx.get_d());
 
     stringModel.length = 1.0_q;  // Length
-    Real x0 = 0.8_q*stringModel.length;  // Point of max amplitube - Triangular IC
-    stringModel.frequency = 220; // Frequency
-    stringModel.wavelength = 2*stringModel.length;
+    stringModel.tension = 100000;
+    stringModel.massPerUnit = 1;
+    Real x0 = 0.85_q*stringModel.length;  // Point of max amplitube - Triangular IC
+    stringModel.frequency = 440; // Frequency
+    stringModel.wavelength = 2*stringModel.length/3;
     //Real c = string.frequency*string.wavelength;
-    Real amp = 0.5_q;
-    stringModel.damping = 15000;
+    Real amp = 0.8_q;
+    stringModel.damping = 100;
 
     //Real T = string.wavelength/c;
-    stringModel.CourantNumber = 0.1_q;
+    stringModel.CourantNumber = 0.8_q;
     //Real C2 = pow(string.CourantNumber, 2);
+
+    Real k = 2*pi/stringModel.wavelength;
 
 /*
     Real L = 1.0_q;   // m - Lenght
@@ -104,10 +108,9 @@ int main(int argc, const char** argv) {
     //SizeType _Nt = Nt.get_d();              
     //Array<Real> time = linspace(Nt*dt, Nt);
 
-    //Real k = 2*pi/string.wavelength;           // wave number
-
     // Set function initial position condition
-    //auto PosInitCond = [&](Real x){return sin(k*x);};  //Steady-state wave
+    //std::function<Real(Real)> PosInitSteady = [&](Real x){return sin(k*x);};  //Steady-state wave
+    
     std::function<Real(Real)> PosInitTri = [&](Real x){ //Triangular
         if (x.get_d() < x0.get_d())
             return amp*(x/x0);
@@ -115,7 +118,8 @@ int main(int argc, const char** argv) {
             return amp*(stringModel.length - x)/(stringModel.length - x0);
     };
 
-    solution = pde_1Dsolver(solution, PosInitTri, stringModel, Nx);
+    auto data = pde_1Dsolver(PosInitTri, stringModel, Nx);
+  
 
     //auto VelInitCond = [&](Real x){return 0;};            // Set function initial velocity position
     //auto source = [&](Real x, Real t){return 0;};
@@ -124,13 +128,20 @@ int main(int argc, const char** argv) {
     GnuplotCanvas canvas = GnuplotCanvas();
 
     Image2D image;
+    //_Line2D line;
+    //line.style = lines2D;
 
-    canvas.setTerminal(gp, image,_png, "pippo");
-    canvas.setTitle(gp, "1D Solution");
-    canvas.setXLabel(gp, "x - Space");
-    canvas.setYLabel(gp, "Amplitude");
+    //Array<double> sol;
+    //sol = canvas.real2double(solution.currV);
+
+    canvas.setTerminal(gp, image, _gif, "pippo"); 
+    //canvas.setTitle(gp, "1D Solution");
+    //canvas.setXLabel(gp, "x - Space");
+    //canvas.setYLabel(gp, "Amplitude");
     canvas.setRange2D(image, 0, int(Nx.get_d()), -1, 1);
-    canvas.plot2D(gp, image, canvas.real2double(solution.currV));
+    //canvas.setLineStyle(image, line);
+    canvas.plot2D(gp, image, data);
+    //gp.send1d(canvas.real2double(solution.currV));
 /*
     Gnuplot gp;
    
