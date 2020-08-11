@@ -26,6 +26,7 @@
 #include "../output/graphics.hpp"
 #include "../config.hpp"
 #include "../utility/string.hpp"
+#include "algebra/tensor.hpp"
 #include <string>
 #include <ctype.h>
 
@@ -108,28 +109,26 @@ const char *_format[] = {"png", "gif"};
 
 struct _Range2D
 {
-    int Xmin = 0;
-    int Xmax;
-    int Ymin = 0;
-    int Ymax;
+    FloatMP Xmin = 0;
+    FloatMP Xmax;
+    FloatMP Ymin = 0;
+    FloatMP Ymax;
 };
 
 struct _Range3D
 {
-    int Xmin = 0;
-    int Xmax;
-    int Ymin = 0;
-    int Ymax;
-    int Zmin = 0;
-    int Zmax;
+    FloatMP Xmin = 0;
+    FloatMP Xmax;
+    FloatMP Ymin = 0;
+    FloatMP Ymax;
+    FloatMP Zmin = 0;
+    FloatMP Zmax;
 };
 
 struct Image2D
 {
     _Colours colour;
     _Line2D linestyle2D;
-    //const int linewidth;
-    //_DimPlot dim;
     _Range2D range2D;
 
 };
@@ -138,8 +137,6 @@ struct Image3D
 {
     _Colours colour;
     _Line3D linestyle3D;
-    //const int linewidth;
-    //_DimPlot dim;
     _Range3D range3D;
     
 };
@@ -151,14 +148,11 @@ struct Image3D
 class GnuplotCanvas
 {
 private:
-    //Image2D *Image2D;
-    //Image3D *image3D;
-    //double lw, dr;  // Line width and Dot radius
-    //Colour lc, fc;  // Line colour and Fill colour
     int sizeX;
     int sizeY;
 protected:  
     bool noCanvas;
+    bool isMultiplot;
 public:
     ~GnuplotCanvas();
     // Constructors - Create the canvas
@@ -167,12 +161,27 @@ public:
     //Create canvas with dimensions
     GnuplotCanvas(Image2D& image, int X, int Y);
     GnuplotCanvas(Image3D& image, int X, int Y);
-    //Convert Array<Real> to Array<double>
-    Array<double> real2double(Array<Real> R);
-    // 2D Plot
-    void plot2D(Gnuplot& gp, Image2D& image, Array<double> data); // Fix gp.send1D
-    // 3D Plot
-    void plot3D(Gnuplot& gp, Image3D& image, Matrix<double> data); // Fix gp.send
+
+    //Set Multiplot - Multiple plot on same screen
+    void setMultiplot(Gnuplot& gp, bool s);
+
+    //Plot 2D data from Tensor
+    void plotTensor2D(Gnuplot& gp, Image2D& image, Tensor<2, FloatMP>& tensor);
+    // Plot 3D data from Tensor
+    void plotTensor3D(Gnuplot& gp, Image3D& image, Tensor<3, FloatMP>& tensor);
+    // Plot 3D data from Array Tensor
+    void plotTensor3D(Gnuplot& gp, Image3D& image, Tensor<3, Vector<Bounds<FloatMP>>>& tensor);//TODO - Prof responce
+
+    // Plot from Array
+    void plot2D(Gnuplot& gp, Image2D& image, Array<double> data);
+    
+    // 2D Plot from file
+    void plot2D(Gnuplot& gp, Image2D& image, String filename);
+    // 3D Plot with tensor - Evolution in Time
+    void plot3D(Gnuplot& gp, Image3D& image, Matrix<double> data);
+
+    // 3D plot from file
+    void plot3D(Gnuplot& gp, Image3D& image, String filename);
     // Set Terminal output 2D
     void setTerminal(Gnuplot& gp, Image2D& image, _Format format, String nameFile);
     // Set Terminal output 3D
@@ -185,25 +194,35 @@ public:
     void setXYZLabel(Gnuplot& gp, String xLabel, String yLabel, String zLabel);
     void setLabels(Gnuplot& gp, String xLabel, String yLabel, String zLabel, String title);
     // Set X, Y range
-    void setRange2D(Image2D& image, int maxX, int maxY);
+    void setRange2D(Image2D& image, FloatMP maxX, FloatMP maxY);
     // Set X, Y range
-    void setRange2D(Image2D& image, int minX, int maxX, 
-                int minY, int maxY);
+    void setRange2D(Image2D& image, FloatMP minX, FloatMP maxX, 
+                FloatMP minY, FloatMP maxY);
     // Set X, Y, Z range
-    void setRange3D(Image3D& image, int minX, int maxX, 
-                int minY, int maxY,
-                int minZ, int maxZ);
-    void setRange3D(Image3D& image, int maxX, int maxY, int maxZ);
+    void setRange3D(Image3D& image, FloatMP minX, FloatMP maxX, 
+                FloatMP minY, FloatMP maxY,
+                FloatMP minZ, FloatMP maxZ);
+    void setRange3D(Image3D& image, FloatMP maxX, FloatMP maxY, FloatMP maxZ);
+    // Set default 2D Linestyle
+    void setLineStyle(Image2D& image);
+    // Set default 3D linestyle
+    void setLineStyle(Image3D& image);
     // Set Line style with parameter
     void setLineStyle(Image2D& image, _Line2D line, int ls, int lw);
+    // Set Line style
+    void setLineStyle(Image2D& image, _Line2D line);
     // Set line with parameter
-    void setLineStyle(Image3D& image, _Line3D line, const int ls, const int lw);
+    void setLineStyle(Image3D& image, _Line3D line, int ls, int lw);
     // set surface with no parameter
     void setLineStyle(Image3D& image, _Line3D line);
-    // Set Colour
+    // Set default 2D color
+    void setColour(Image2D& image);
+    // Set default 3D color
+    void setColour(Image3D& image);
+    // Set Colour with color
     void setColour(Image2D& image, _Colours color);
-    // Set colour with '#abcdef'
-    void setColour(Image2D& image, String color);
+    // Set colour with color
+    void setColour(Image3D& image, _Colours color);
     // Set X Log axis
     void setXLogAxis(Gnuplot& gp);
     // Set Y Log axis
@@ -225,7 +244,12 @@ public:
     void setViewXZ(Gnuplot& gp);
     //Projection YZ
     void setViewYZ(Gnuplot& gp);
+    //Set 3D palette
+    void set3DPalette(Gnuplot& gp);
+    //Set hidden 3D line
+    void setHidden3D(Gnuplot& gp);
 
+    
 
 };
 
