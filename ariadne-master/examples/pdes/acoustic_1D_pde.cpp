@@ -17,35 +17,10 @@
 using namespace Ariadne;
 using namespace std;
 //using  std::ofstream;
-/*
-Array<Real> linspace(Real end, Real num)
-{
-    Array<Real> linspaced(num.get_d());
 
-    //DimensionType numIn = num;
-
-    if (num.get_d() == 0)
-        return linspaced;
-    if (num.get_d() == 1)
-    {
-        linspaced[0] = end;
-        return linspaced;
-    }
-
-    Real delta = end/(num - 1);
-
-    for (SizeType i = 0; i < (num.get_d() - 1); i++)
-    {
-        linspaced[i] = 0 + delta*i;
-    }
-    linspaced[num.get_d() - 1] = end;
-       
-    return linspaced;
-}
-*/
 int main(int argc, const char** argv) {
 
-    Real Nx = 41;                // # point in space
+    SizeType Nx = 41;                // # point in space
 
     //String tempStr;
 
@@ -67,21 +42,21 @@ int main(int argc, const char** argv) {
 
     //Array<double> sol1D(Nx.get_d());
 
-    stringModel.length = 1.0_q;  // Length
+    stringModel.length = 1.0;  // Length
     stringModel.tension = 100000;
     stringModel.massPerUnit = 1;
-    Real x0 = 0.85_q*stringModel.length;  // Point of max amplitube - Triangular IC
+    FloatMP x0 = 0.85*stringModel.length;  // Point of max amplitube - Triangular IC
     stringModel.frequency = 440; // Frequency
-    stringModel.wavelength = 2*stringModel.length/3;
+    stringModel.wavelength = 2*stringModel.length;
     //Real c = string.frequency*string.wavelength;
-    Real amp = 0.8_q;
+    FloatMP amp = 0.8;
     stringModel.damping = 100;
 
     //Real T = string.wavelength/c;
-    stringModel.CourantNumber = 0.8_q;
+    stringModel.CourantNumber = 0.8;
     //Real C2 = pow(string.CourantNumber, 2);
 
-    Real k = 2*pi/stringModel.wavelength;
+    FloatMP k = 2*pi_opp()/stringModel.wavelength;
 
 /*
     Real L = 1.0_q;   // m - Lenght
@@ -109,9 +84,9 @@ int main(int argc, const char** argv) {
     //Array<Real> time = linspace(Nt*dt, Nt);
 
     // Set function initial position condition
-    //std::function<Real(Real)> PosInitSteady = [&](Real x){return sin(k*x);};  //Steady-state wave
+    //std::function<FloatMP(FloatMP)> PosInitSteady = [&](FloatMP x){return sin(k*x);};  //Steady-state wave
     
-    std::function<Real(Real)> PosInitTri = [&](Real x){ //Triangular
+    std::function<FloatMP(FloatMP)> PosInitTri = [&](FloatMP x){ //Triangular
         if (x.get_d() < x0.get_d())
             return amp*(x/x0);
         else
@@ -128,20 +103,16 @@ int main(int argc, const char** argv) {
     GnuplotCanvas canvas = GnuplotCanvas();
 
     Image2D image;
-    //_Line2D line;
-    //line.style = lines2D;
 
-    //Array<double> sol;
-    //sol = canvas.real2double(solution.currV);
+    canvas.setTerminal(gp, image, _gif, "string-TimeEvol");
+    canvas.setMultiplot(gp, false);
+    canvas.setTitle(gp, "String Evolution with triangular IC");
+    canvas.setXLabel(gp, "x - Space");
+    canvas.setYLabel(gp, "Amplitude");
+    canvas.setRange2D(image, 0, Nx, -1, 1);
 
-    canvas.setTerminal(gp, image, _gif, "pippo"); 
-    //canvas.setTitle(gp, "1D Solution");
-    //canvas.setXLabel(gp, "x - Space");
-    //canvas.setYLabel(gp, "Amplitude");
-    canvas.setRange2D(image, 0, int(Nx.get_d()), -1, 1);
-    //canvas.setLineStyle(image, line);
-    canvas.plot2D(gp, image, data);
-    //gp.send1d(canvas.real2double(solution.currV));
+    canvas.plotTensor2D(gp, image, data);
+
 /*
     Gnuplot gp;
    
