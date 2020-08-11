@@ -6,6 +6,8 @@
 #include "algebra/vector.hpp"
 #include "utility/array.hpp"
 #include "function/function.decl.hpp"
+#include "algebra/tensor.hpp"
+//#include "typedefs.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -14,30 +16,33 @@
 
 namespace Ariadne
 {
+/*
     struct pde_solution_1D
     {
         Array<Real> nextV;  //Next solution
         Array<Real> currV;  //Current solution
         Array<Real> prevV;  //Previous solution
     };
-
+*/
     struct string1D
     {
-        Real length;    //Length of string
-        Real frequency; //Frequency of oscillation
-        Real wavelength;    // n*L
-        Real damping;   //damping
-        Real CourantNumber; //Courant Number 
+        FloatMP length;    //Length of string
+        FloatMP tension;
+        FloatMP massPerUnit;
+        FloatMP frequency; //Frequency of oscillation
+        FloatMP wavelength;    // n*L
+        FloatMP damping;   //damping
+        FloatMP CourantNumber; //Courant Number 
     };    
 
 
     // Solving the one dimensional pde
-    pde_solution_1D pde_1Dsolver(pde_solution_1D& solution, std::function<Real(Real)> &phi0, string1D& stringParameter, Real Nx);
+    Tensor<2, FloatMP> pde_1Dsolver(std::function<FloatMP(FloatMP)> &phi0, string1D& stringParameter, SizeType Nx);
     
     // Set initial condition
-    pde_solution_1D setIC(pde_solution_1D& solution, std::function<Real(Real)> &phi0, Real Nx, Array<Real> spacePoint);
+    Tensor<2, FloatMP> setIC(Tensor<2, FloatMP>& uts, std::function<FloatMP(FloatMP)> &phi0, SizeType Nx, Array<FloatMP> spacePoint);
 
     // Create the linespace
-    Array<Real> linspace(Real L, Real n);
+    Array<FloatMP> linspace(FloatMP L, SizeType n);
 
 }   // namespace Ariadne
