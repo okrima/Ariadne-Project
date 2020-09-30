@@ -1,0 +1,23 @@
+TODO LIST - ARIADNE
+
+1) Le domando se può imbastire degli esempi rappresentativi di plotting all'interno della cartella 
+test/output, se lo ritiene necessario in un nuovo file di test oppure all'interno dell'esistente 
+test_graphics. Prenda come riferimento test/solvers/test_bounder.cpp piuttosto che 
+test/output/test_graphics.cpp. Questo perchè nel primo caso il test è organizzatoin chiamate 
+multiple, mentre nel secondo caso è un calderone di linee di codice nel main. -- DONE
+
+2)Bisogna tenere in considerazione che non è garantita la presenza di gnuplot installato. 
+Per Cairo abbiamo un controllo via CMake attraverso FindCairo. 
+Esiste un corrispondente FindGnuplot: https://cmake.org/cmake/help/v3.9/module/FindGnuplot.html
+E' necessario che l'abilitazione del codice dipendente da Gnuplot sia condizionato alla presenza 
+del relativo tool. Prendendo spunto 1-1 da Cairo dovrebbe riuscire ad implementare velocemente 
+questo controllo. -- DONE
+
+3) È utile poter produrre un dump della lista dei comandi su file, per eventuale editing manuale 
+o per importare esternamente (se non erro il motore di plotting di Octave si basa su GNUPLOT). 
+Offrire questa opzione è decisamente semplice, direi. -- DONE
+
+4) Dividere l'implementazione del plot in gnuplot.hpp e graphics.cpp per gestire la formattazione 
+dei tipi della classe Bounds.
+
+5) Cercare di eliminare la libreria Boost nell'interfaccia gnuplop-iostream.hpp. -- DONE
