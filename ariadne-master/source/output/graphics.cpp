@@ -343,7 +343,6 @@ Figure::write(const char* cfilename) const
     this->write(cfilename, DEFAULT_WIDTH, DEFAULT_HEIGHT);
 }
 
-
 Void
 Figure::write(const char* cfilename, Nat drawing_width, Nat drawing_height) const
 {
@@ -360,7 +359,13 @@ Figure::write(const char* cfilename, Nat drawing_width, Nat drawing_height) cons
     canvas->write(filename.c_str());
 }
 
+#ifdef HAVE_GNUPLOT_H
 
+SharedPointer<CanvasInterface> make_canvas(Nat drawing_width, Nat drawing_height) {
+    return std::make_shared<GnuplotCanvas>(drawing_width, drawing_height);
+}
+
+#else
 
 #ifdef HAVE_CAIRO_H
 
@@ -370,13 +375,21 @@ SharedPointer<CanvasInterface> make_canvas(Nat drawing_width, Nat drawing_height
 
 #else
 
+#ifdef HAVE_GNUPLOT_H
+
+SharedPointer<CanvasInterface> make_canvas(Nat drawing_width, Nat drawing_height) {
+    return std::make_shared<GnuplotCanvas>(drawing_width, drawing_height);
+}
+
+#else
+
 SharedPointer<CanvasInterface> make_canvas(Nat drawing_width, Nat drawing_height) {
     ARIADNE_WARN_ONCE("No facilities for displaying graphics are available.");
     return std::make_shared<NullCanvas>();
 }
-
 #endif
-
+#endif 
+#endif
 
 #ifdef HAVE_CAIRO_H
 
@@ -391,6 +404,7 @@ CairoCanvas::CairoCanvas(cairo_t *c)
 {
 }
 
+
 CairoCanvas::CairoCanvas(const ImageSize2d& size)
     : cr(0), lw(1.0), dr(1.0), lc(0.0,0.0,0.0), fc(1.0,1.0,1.0, 1.0)
 {
@@ -399,6 +413,7 @@ CairoCanvas::CairoCanvas(const ImageSize2d& size)
 
     cairo_surface_t* surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, canvas_width, canvas_height);
     cr = cairo_create (surface);
+    
 }
 
 CairoCanvas::CairoCanvas(const ImageSize2d& size, const Box2d& bounds)
@@ -591,45 +606,202 @@ Void CairoCanvas::finalise()
 //Create the canvas
 GnuplotCanvas::GnuplotCanvas()
 {
+    gnuplot = new Gnuplot();
     noCanvas = true;
     isMultiplot = false;
     is3DPalette = false;
+    is2DPalette = false;
+
+    this->geom.resize(INT64_MAX);
+    this->dim = 0;
 
 }
 
-GnuplotCanvas::GnuplotCanvas(Image2D& image, int X, int Y)
-{
-    ARIADNE_ASSERT(sizeX >= 0);
-    ARIADNE_ASSERT(sizeY >= 0);
-    noCanvas = false;
-    isMultiplot = false;
-    sizeX = X;
-    sizeY = Y;
-}
+//CANVAS for 2D plot
+GnuplotCanvas::GnuplotCanvas(Nat X, Nat Y): lc(0.0, 0.0, 0.0, 0.0),
+                                            fc(1.0, 1.0, 1.0, 1.0),
+                                            dr(1.0),
+                                            isdot(false),
+                                            sizeX(X),
+                                            sizeY(Y),
+                                            noCanvas(false), 
+                                            isMultiplot(false),
+                                            is2DPalette(false),
+                                            is3DPalette(false)
 
-GnuplotCanvas::GnuplotCanvas(Image3D& image, int X, int Y)
 {
-    ARIADNE_ASSERT(sizeX >= 0);
-    ARIADNE_ASSERT(sizeY >= 0);
-    noCanvas = false;
-    isMultiplot = false;
-    is3DPalette = false;
-    sizeX = X;
-    sizeY = Y;
-}
+    gnuplot = new Gnuplot("tee image.gnu | gnuplot -persist");
+    *gnuplot << "set terminal png ";  
 
-void GnuplotCanvas::setMultiplot(Gnuplot& gp, bool s)
-{
-    if (s)
+    if (noCanvas == true){ // If no dimensions
+
+    }
+    else    
     {
-        isMultiplot = true;
-        gp << "set multiplot\n";
-    }  
+        *gnuplot << "size " << to_string(this->sizeX) << ", " <<
+            to_string(this->sizeY);
+
+    }
+
+    *gnuplot << "\n";
+    this->geom.resize(1024);
+    this->dim = 0;
+    this->setMultiplot(false);   
+    //TODO CANVAS for 3D plot and animation
+
 }
 
-void GnuplotCanvas::setMultiplotLayout(Gnuplot& gp, int nRow, int nCol, String title)
+void GnuplotCanvas::finalise() {}
+void GnuplotCanvas::circle(double x, double y, double r) {}
+void GnuplotCanvas::stroke() {}
+
+void GnuplotCanvas::move_to(double x, double y)
 {
-    gp << "set multiplot layout " << to_string(nRow) << "," << to_string(nCol) << " title \"" << title << "\"\n";
+    
+    this->Cpoint.x = this->geom[0].x = x;
+    this->Cpoint.y = this->geom[0].y = y;
+
+    //this->x_coo = this->X_vec[0] = x;
+    //this->y_coo = this->Y_vec[0] = y;
+    
+}
+
+void GnuplotCanvas::line_to(double x, double y)
+{
+    this->dim++;
+
+    //*gnuplot << "set arrow from " << x_coo << "," << y_coo << " to " << x << "," << y << " nohead\n";
+    //this->x_coo = x;
+    //this->y_coo = y;
+
+    if (this->dim >= this->geom.size())
+    {
+        this->geom.resize(this->geom.size()+this->geom.size());
+        this->geom.resize(this->geom.size()+this->geom.size());
+    }
+  
+    this->Cpoint.x = this->geom[this->dim].x = x;
+    this->Cpoint.y = this->geom[this->dim].y = y;
+
+    //this->x_coo = this->X_vec[this->dim] = x;
+    //this->y_coo = this->Y_vec[this->dim] = y;
+
+}
+
+void GnuplotCanvas::dot(double x, double y)
+{
+    this->isdot = true;
+    this->Cpoint.x = x;
+    this->Cpoint.y = y;
+}
+
+void GnuplotCanvas::fill()
+{
+    
+}
+
+void GnuplotCanvas::write(const char* filename) const
+{
+    char hex_string[20];
+    *gnuplot << "set output \"" << filename << "\"\n";
+
+    if (this->isdot)
+    {
+        *gnuplot << "plot \"<echo '" << to_string(this->Cpoint.x) << " " << to_string(this->Cpoint.y) << "'\" w p ls 7 ps " << to_string(this->dr) << "\n";
+    }
+    else
+    {
+        *gnuplot << "plot '-' w lines ";
+
+        *gnuplot << "lc \"#";
+        if (this->fc.red < 9) { *gnuplot << "0" << this->fc.red;}
+        else if (this->fc.red > 255){ *gnuplot << "FF";}
+        else{   
+            sprintf(hex_string, "%X", std::make_unsigned<int>::type(this->fc.red)); 
+            *gnuplot << hex_string;
+            }
+        if (this->fc.green < 9) { *gnuplot << "0" << this->fc.green;}
+        else if (this->fc.green > 255){ *gnuplot << "FF";}
+        else{
+            sprintf(hex_string, "%X", std::make_unsigned<int>::type(this->fc.green)); 
+            *gnuplot << hex_string;
+            }
+        if (this->fc.blue < 9) { *gnuplot << "0" << this->fc.blue;}
+        else if (this->fc.blue > 255){ *gnuplot << "FF";}
+        else{sprintf(hex_string, "%X", std::make_unsigned<int>::type(this->fc.blue)); 
+            *gnuplot <<hex_string;
+            }
+        *gnuplot << "\"";
+
+        *gnuplot << "\n";/*fc rgb \"#" << std::hex << this->fc.red << std::hex << this->fc.green << std::hex << this->fc.blue <<"\" fs solid " << to_string(this->fc.opacity) << " border lc rgb \"#" << std::hex << this->lc.red << std::hex << this->lc.green << this->lc.blue <<"\"\n";*/
+        for (SizeType i = 0; i < this->dim; i++)
+        {
+            *gnuplot << to_string(this->geom[i].x) << " " << to_string(this->geom[i].y) << "\n";
+        }
+        *gnuplot << "e\n";
+        *gnuplot << "quit\n";
+    }
+
+}
+
+void GnuplotCanvas::set_dot_radius(double r)
+{
+    this->dr = r;
+}
+
+void GnuplotCanvas::set_line_width(double lw)
+{
+    *gnuplot << "set style line 1 lw " << to_string(lw) << "\n";
+}
+
+void GnuplotCanvas::set_line_colour(double r, double g, double b) 
+{
+    this->lc.red = std::round(r*255);
+    this->lc.green = std::round(g*255);
+    this->lc.blue = std::round(b*255);
+}
+
+void GnuplotCanvas::set_fill_opacity(double fo)
+{
+    this->fc.opacity = fo;
+    *gnuplot << "set style fill transparent solid " << to_string(fo) << "\n";
+}
+
+void GnuplotCanvas::set_fill_colour(double r, double g, double b) 
+{
+    this->fc.red = std::round(r*255);
+    this->fc.green = std::round(g*255);
+    this->fc.blue = std::round(b*255);
+}
+
+void GnuplotCanvas::initialise(StringType x, StringType y, double xl, double xu, double yl, double yu)
+{
+    this->setXLabel(x);
+    this->setYLabel(y);
+    this->setRange2D(xl, xu, yl, yu);
+}
+
+Vector2d GnuplotCanvas::scaling() const { return Vector2d(0, 0); }
+Box2d GnuplotCanvas::bounds() const { return Box2d(0, 0, 0, 0); }
+
+void GnuplotCanvas::setMultiplot(bool s)
+{
+    if (s == true && this->isMultiplot == false)
+    {
+        this->isMultiplot = true;
+        *gnuplot << "set multiplot\n";
+    }
+    else
+    {
+        *gnuplot << "unset multiplot\n";
+        this->isMultiplot = false;
+    }
+    
+}
+
+void GnuplotCanvas::setMultiplotLayout(int nRow, int nCol, String title)
+{
+    *gnuplot << "set multiplot layout " << to_string(nRow) << "," << to_string(nCol) << " title \"" << title << "\"\n";
 }
 
 void GnuplotCanvas::plot2D(Gnuplot& gp, Image2D& image, Array<double> data)
@@ -644,119 +816,48 @@ void GnuplotCanvas::plot2D(Gnuplot& gp, Image2D& image, Array<double> data)
     gp << "with " << _linestyle2D[image.linestyle2D.style] << " ls " << to_string(image.linestyle2D.ls) <<
         " lw " << to_string(image.linestyle2D.lw);
     // set colour
-    gp << " lc rgb \"" << _colours[image.colour] << "\"\n";
-    //Send data through pipe gp
-    gp.send1d(data);
-}
-/*
-void GnuplotCanvas::plot2D(Gnuplot& gp, Image2D& image, Vector<double> data)
-{
-    // START PLOT SINTAX
-    gp << "plot ";
-    gp << "[] ";
+    if (is2DPalette)
+    {
+        gp << " " << "linecolor palette";
+    }
+    else
+    {
+        gp << " lc rgb \"" << _colours[image.colour] << "\"";
+    }  
 
-    // Gnuplot wait for input
-    gp << "'-' ";
-    // set linestyle
-    gp << "with " << _linestyle2D[image.linestyle2D.style] << " ls " << to_string(image.linestyle2D.ls) <<
-        " lw " << to_string(image.linestyle2D.lw);
-    // set colour
-    gp << " lc rgb \"" << _colours[image.colour] << "\"\n";
+    gp << "\n";
+
     //Send data through pipe gp
     gp.send1d(data);
 }
-*/
+
 void GnuplotCanvas::plot2D(Gnuplot& gp, Image2D& image, Array<Array<double>> dataBound)
 {
-    if (!isMultiplot)
+    for (SizeType i = 0; i < 2; i++)    //Lower = 0 and Upper = 1 value
     {
-        setMultiplot(gp, false);
-        for (SizeType i = 0; i < 2; i++)    //For each value - Upper and Lower
+        // START PLOT SINTAX
+        gp << "plot ";
+        gp << "[] ";
+        // Gnuplot wait for input
+        gp << "'-' ";
+        // set linestyle
+        gp << "with " << _linestyle2D[image.linestyle2D.style] << " ls " << to_string(image.linestyle2D.ls) <<
+            " lw " << to_string(image.linestyle2D.lw);
+        // set colour
+        if (is2DPalette)
         {
-            // START PLOT SINTAX
-            gp << "plot ";
-            gp << "[] ";
-
-            // Gnuplot wait for input
-            gp << "'-' ";
-            // set linestyle
-            gp << "with " << _linestyle2D[image.linestyle2D.style] << " ls " << to_string(image.linestyle2D.ls) <<
-                " lw " << to_string(image.linestyle2D.lw);
-            // set colour
-            gp << " lc rgb \"" << _colours[image.colour] << "\"\n";
-            //Send data through pipe gp
-            gp.send1d(dataBound[i]);
-            setMultiplot(gp, true);
+            gp << " " << "linecolor palette";
         }
-        setMultiplot(gp, false);      
-        
-    }
-    else
-    {
-        for (SizeType i = 0; i < 2; i++)    //Lower = 0 and Upper = 1 value
+        else
         {
-            // START PLOT SINTAX
-            gp << "plot ";
-            gp << "[] ";
-
-            // Gnuplot wait for input
-            gp << "'-' ";
-            // set linestyle
-            gp << "with " << _linestyle2D[image.linestyle2D.style] << " ls " << to_string(image.linestyle2D.ls) <<
-                " lw " << to_string(image.linestyle2D.lw);
-            // set colour
-            gp << " lc rgb \"" << _colours[image.colour] << "\"\n";
-            //Send data through pipe gp
-            gp.send1d(dataBound[i]);
-        }
+            gp << " lc rgb \"" << _colours[image.colour] << "\"";
+        }  
+        gp << "\n";
+        //Send data through pipe gp
+        gp.send1d(dataBound[i]);
     }
 }
-/*
-void GnuplotCanvas::plot2D(Gnuplot& gp, Image2D& image, Vector<Vector<double>> dataBound)
-{
-    if (!isMultiplot)
-    {
-        setMultiplot(gp, false);
-        for (SizeType i = 0; i < 2; i++)
-        {
-            // START PLOT SINTAX
-            gp << "plot ";
-            gp << "[] ";
 
-            // Gnuplot wait for input
-            gp << "'-' ";
-            // set linestyle
-            gp << "with " << _linestyle2D[image.linestyle2D.style] << " ls " << to_string(image.linestyle2D.ls) <<
-                " lw " << to_string(image.linestyle2D.lw);
-            // set colour
-            gp << " lc rgb \"" << _colours[image.colour] << "\"\n";
-            //Send data through pipe gp
-            gp.send1d(dataBound[i]);
-            setMultiplot(gp, true);
-        }
-        setMultiplot(gp, false);         
-    }
-    else
-    {
-        for (SizeType i = 0; i < 2; i++)    //Lower = 0 and Upper = 1 value
-        {
-            // START PLOT SINTAX
-            gp << "plot ";
-            gp << "[] ";
-
-            // Gnuplot wait for input
-            gp << "'-' ";
-            // set linestyle
-            gp << "with " << _linestyle2D[image.linestyle2D.style] << " ls " << to_string(image.linestyle2D.ls) <<
-                " lw " << to_string(image.linestyle2D.lw);
-            // set colour
-            gp << " lc rgb \"" << _colours[image.colour] << "\"\n";
-            //Send data through pipe gp
-            gp.send1d(dataBound[i]);
-        }
-    }   
-}
-*/
 void GnuplotCanvas::plot2D(Gnuplot& gp, Image2D& image, _Range2D& range2D, Array<double> data)
 {
     // START PLOT SINTAX
@@ -778,169 +879,65 @@ void GnuplotCanvas::plot2D(Gnuplot& gp, Image2D& image, _Range2D& range2D, Array
 
     // Gnuplot wait for input
     gp << "'-' ";
+    if (is2DPalette)
+    {
+        gp << "using ::1 ";
+    }
+    
     // set linestyle
     gp << "with " << _linestyle2D[image.linestyle2D.style] << " ls " << to_string(image.linestyle2D.ls) <<
         " lw " << to_string(image.linestyle2D.lw);
     // set colour
-    gp << " lc rgb \"" << _colours[image.colour] << "\"\n";
+    if (is2DPalette)
+    {
+        gp << " linecolor palette";
+    }
+    else
+    {
+        gp << " lc rgb \"" << _colours[image.colour] << "\"";
+    }
+    
+    gp << "\n";
+
     //Send data through pipe gp
     gp.send1d(data);
 }
 
 void GnuplotCanvas::plot2D(Gnuplot& gp, Image2D& image, _Range2D& range2D, Array<Array<double>> dataBound)
 {
-    if (!isMultiplot)
+    for (SizeType i = 0; i < 2; i++)    //Lower = 0 and Upper = 1 value
     {
-        setMultiplot(gp, false);
-        for (SizeType i = 0; i < 2; i++)
+        // START PLOT SINTAX
+        gp << "plot ";
+        if (!to_string(range2D.Xmax).empty()){
+            gp << "[" << to_string(range2D.Xmin) << ":" << to_string(range2D.Xmax-1) << "] ";
+        }else
         {
-            // START PLOT SINTAX
-            gp << "plot ";
-            if (!to_string(range2D.Xmax).empty()){
-                gp << "[" << to_string(range2D.Xmin) << ":" << to_string(range2D.Xmax-1) << "] ";
-            }else
-            {
-                gp << "[] ";
-            }
-            if (!to_string(range2D.Ymax).empty()){
-                gp << "[" << to_string(range2D.Ymin) << ":" << to_string(range2D.Ymax) << "] ";
-            }
-
-            // Gnuplot wait for input
-            gp << "'-' ";
-            // set linestyle
-            gp << "with " << _linestyle2D[image.linestyle2D.style] << " ls " << to_string(image.linestyle2D.ls) <<
-                " lw " << to_string(image.linestyle2D.lw);
-            // set colour
-            gp << " lc rgb \"" << _colours[image.colour] << "\"\n";
-            //Send data through pipe gp
-            gp.send1d(dataBound[i]);
-            setMultiplot(gp, true);
+            gp << "[] ";
         }
-        setMultiplot(gp, false);         
-    }
-    else
-    {
-        for (SizeType i = 0; i < 2; i++)    //Lower = 0 and Upper = 1 value
+        if (!to_string(range2D.Ymax).empty()){
+            gp << "[" << to_string(range2D.Ymin) << ":" << to_string(range2D.Ymax) << "] ";
+        }
+        // Gnuplot wait for input
+        gp << "'-' ";
+        // set linestyle
+        gp << "with " << _linestyle2D[image.linestyle2D.style] << " ls " << to_string(image.linestyle2D.ls) <<
+            " lw " << to_string(image.linestyle2D.lw);
+        // set colour
+        if (is2DPalette)
         {
-            // START PLOT SINTAX
-            gp << "plot ";
-            if (!to_string(range2D.Xmax).empty()){
-                gp << "[" << to_string(range2D.Xmin) << ":" << to_string(range2D.Xmax-1) << "] ";
-            }else
-            {
-                gp << "[] ";
-            }
-            if (!to_string(range2D.Ymax).empty()){
-                gp << "[" << to_string(range2D.Ymin) << ":" << to_string(range2D.Ymax) << "] ";
-            }
-
-            // Gnuplot wait for input
-            gp << "'-' ";
-            // set linestyle
-            gp << "with " << _linestyle2D[image.linestyle2D.style] << " ls " << to_string(image.linestyle2D.ls) <<
-                " lw " << to_string(image.linestyle2D.lw);
-            // set colour
-            gp << " lc rgb \"" << _colours[image.colour] << "\"\n";
-            //Send data through pipe gp
-            gp.send1d(dataBound[i]);
+            gp << " " << "linecolor palette";
         }
-    }      
-}
-/*
-void GnuplotCanvas::plot2D(Gnuplot& gp, Image2D& image, _Range2D& range2D, Vector<double> data)
-{
-    // START PLOT SINTAX
-    gp << "plot ";
-    // set Range
-    if (!to_string(range2D.Xmax).empty()){
-        gp << "[" << to_string(range2D.Xmin) << ":" << to_string(range2D.Xmax-1) << "] ";
-    }else
-    {
-        gp << "[] ";
-    }
-    if (!to_string(range2D.Ymax).empty()){
-        gp << "[" << to_string(range2D.Ymin) << ":" << to_string(range2D.Ymax) << "] ";
-    }
-    else
-    {
-        gp << "[] ";
-    }
-
-    // Gnuplot wait for input
-    gp << "'-' ";
-    // set linestyle
-    gp << "with " << _linestyle2D[image.linestyle2D.style] << " ls " << to_string(image.linestyle2D.ls) <<
-        " lw " << to_string(image.linestyle2D.lw);
-    // set colour
-    gp << " lc rgb \"" << _colours[image.colour] << "\"\n";
-    //Send data through pipe gp
-    gp.send1d(data);
-}
-*/
-/*
-void GnuplotCanvas::plot2D(Gnuplot& gp, Image2D& image, _Range2D& range2D, Vector<Vector<double>> dataBound)
-{
-    if (!isMultiplot)
-    {
-        setMultiplot(gp, false);
-        for (SizeType i = 0; i < 2; i++)
+        else
         {
-            // START PLOT SINTAX
-            gp << "plot ";
-            if (!to_string(range2D.Xmax).empty()){
-                gp << "[" << to_string(range2D.Xmin) << ":" << to_string(range2D.Xmax-1) << "] ";
-            }else
-            {
-                gp << "[] ";
-            }
-            if (!to_string(range2D.Ymax).empty()){
-                gp << "[" << to_string(range2D.Ymin) << ":" << to_string(range2D.Ymax) << "] ";
-            }
-
-            // Gnuplot wait for input
-            gp << "'-' ";
-            // set linestyle
-            gp << "with " << _linestyle2D[image.linestyle2D.style] << " ls " << to_string(image.linestyle2D.ls) <<
-                " lw " << to_string(image.linestyle2D.lw);
-            // set colour
-            gp << " lc rgb \"" << _colours[image.colour] << "\"\n";
-            //Send data through pipe gp
-            gp.send1d(dataBound[i]);
-            setMultiplot(gp, true);
-        }
-        setMultiplot(gp, false);         
-    }
-    else
-    {
-        for (SizeType i = 0; i < 2; i++)    //Lower = 0 and Upper = 1 value
-        {
-            // START PLOT SINTAX
-            gp << "plot ";
-            if (!to_string(range2D.Xmax).empty()){
-                gp << "[" << to_string(range2D.Xmin) << ":" << to_string(range2D.Xmax-1) << "] ";
-            }else
-            {
-                gp << "[] ";
-            }
-            if (!to_string(range2D.Ymax).empty()){
-                gp << "[" << to_string(range2D.Ymin) << ":" << to_string(range2D.Ymax) << "] ";
-            }
-
-            // Gnuplot wait for input
-            gp << "'-' ";
-            // set linestyle
-            gp << "with " << _linestyle2D[image.linestyle2D.style] << " ls " << to_string(image.linestyle2D.ls) <<
-                " lw " << to_string(image.linestyle2D.lw);
-            // set colour
-            gp << " lc rgb \"" << _colours[image.colour] << "\"\n";
-            //Send data through pipe gp
-            gp.send1d(dataBound[i]);
-        }
-    }      
+            gp << " lc rgb \"" << _colours[image.colour] << "\"";
+        }  
+        gp << "\n"; 
+        //Send data through pipe gp
+        gp.send1d(dataBound[i]);
+    }     
 }
 
-*/
 void GnuplotCanvas::plot3D(Gnuplot& gp, Image3D& image, _Range3D& range3D, Array<Array<double>> data)
 {  
     // START PLOT SINTAX
@@ -985,125 +982,37 @@ void GnuplotCanvas::plot3D(Gnuplot& gp, Image3D& image, _Range3D& range3D, Array
         gp<< "\n";
     }
     //Send data through pipe gp
-    gp.send2d(data);
+    gp.send2d(data);    
 }
-/*
-void GnuplotCanvas::plot3D(Gnuplot& gp, Image3D& image, _Range3D& range3D, Vector<Vector<double>> data)
-{
-    // START PLOT SINTAX
-    gp << "splot ";
-    // get Range
-    if (!to_string(range3D.Xmax).empty()){
-        gp << "[" << to_string(range3D.Xmin) << ":" << to_string(range3D.Xmax) << "] ";
-    }else
-    {
-        gp << "[ ] ";
-    }
-    if (!to_string(range3D.Ymax).empty()){
-        gp << "[" << to_string(range3D.Ymin) << ":" << to_string(range3D.Ymax) << "] ";
-    }
-    else
-    {
-        gp << "[ ] ";
-    }
-    if (!to_string(range3D.Zmax).empty()){
-        gp << "[" << to_string(range3D.Zmin) << ":" << to_string(range3D.Zmax) << "] ";
-    }
-    else
-    {
-        gp << "[ ] ";
-    }
-    // Gnuplot wait for input 
-    gp << "'-' ";
-    // get linestyle
-    gp << "with " << _linestyle3D[image.linestyle3D.style] << " ";
 
-    if (image.linestyle3D.style != surface3D && image.linestyle3D.style != pm3d)
-    {
-        gp << " ls " << to_string(image.linestyle3D.ls) << " lw " << to_string(image.linestyle3D.lw);
-    }
-    // get colour
-    if (!is3DPalette)
-    {
-        gp << " lc rgb \"" << _colours[image.colour] << "\"\n";
-    }
-    else
-    {
-        gp<< "\n";
-    }
-    //Send data through pipe gp
-    gp.send2d(data);
-} 
-*/
-/*
-void GnuplotCanvas::plot3D(Gnuplot& gp, Image3D& image, _Range3D& range3D, Vector<Vector<Vector<double>>> dataBound)
-{
-    if (!isMultiplot)
-    {
-        setMultiplot(gp, false);
-        for (SizeType i = 0; i < 2; i++)    //Lower and Upper Value
-        {
-            // START PLOT SINTAX
-            gp << "plot ";
-            gp << "[] ";
-
-            // Gnuplot wait for input
-            gp << "'-' ";
-            // set linestyle
-            gp << "with " << _linestyle2D[image.linestyle3D.style] << " ls " << to_string(image.linestyle3D.ls) <<
-                " lw " << to_string(image.linestyle3D.lw);
-            // set colour
-            gp << " lc rgb \"" << _colours[image.colour] << "\"\n";
-            //Send data through pipe gp
-            gp.send2d(dataBound[i]);
-            setMultiplot(gp, true);
-        }
-        setMultiplot(gp, false);         
-    }
-    else{
-        ARIADNE_ERROR("Impossible to plot 3D image with multiplot, please set multiplot = FALSE");
-    }
-} 
-*/
 void GnuplotCanvas::plot3D(Gnuplot& gp, Image3D& image, _Range3D& range3D, Array<Array<Array<double>>> dataBound)
 {
-    if (!isMultiplot)
+    for (SizeType i = 0; i < 2; i++)    //Lower and Upper Value
     {
-        setMultiplot(gp, false);
-        for (SizeType i = 0; i < 2; i++)    //Lower and Upper Value
-        {
-            // START PLOT SINTAX
-            gp << "plot ";
-            gp << "[] ";
-
-            // Gnuplot wait for input
-            gp << "'-' ";
-            // set linestyle
-            gp << "with " << _linestyle2D[image.linestyle3D.style] << " ls " << to_string(image.linestyle3D.ls) <<
-                " lw " << to_string(image.linestyle3D.lw);
-            // set colour
-            gp << " lc rgb \"" << _colours[image.colour] << "\"\n";
-            //Send data through pipe gp
-            gp.send2d(dataBound[i]);
-            setMultiplot(gp, true);
-        }
-        setMultiplot(gp, false);         
-    }
-    else{
-        ARIADNE_ERROR("Impossible to plot 3D image with multiplot, please set multiplot = FALSE");
+        // START PLOT SINTAX
+        gp << "splot ";
+        gp << "[] ";
+        // Gnuplot wait for input
+        gp << "'-' ";
+        // set linestyle
+        gp << "with " << _linestyle2D[image.linestyle3D.style] << " ls " << to_string(image.linestyle3D.ls) <<
+            " lw " << to_string(image.linestyle3D.lw);
+        // set colour
+        gp << " lc rgb \"" << _colours[image.colour] << "\"\n";
+        //Send data through pipe gp
+        gp.send2d(dataBound[i]);            
     }
 }
 
-
-void GnuplotCanvas::setTerminal(Gnuplot& gp, /*Image2D& image, */_Format format, String nameFile)
+void GnuplotCanvas::setTerminal(_Format format, String nameFile)
 {
     if (format == _gif)
         {
-            gp << "set term " << _format[format] << " animate\n";
+            *gnuplot << "set terminal " << _format[format] << " animate\n";
         }
         else
         {
-            gp << "set term " << _format[format] << " \n";
+            *gnuplot << "set terminal " << _format[format] << " \n";
 
         }   
 
@@ -1112,57 +1021,57 @@ void GnuplotCanvas::setTerminal(Gnuplot& gp, /*Image2D& image, */_Format format,
     }
     else    
     {
-        gp << "size " << to_string(sizeX) << " " <<
+        *gnuplot << "size " << to_string(sizeX) << " " <<
             to_string(sizeY) << "\n";
 
     }
-    // create file
-    gp << "set output \"" << nameFile << "." << _format[format] << "\"\n";
-    
-
-    //_filename = nameFile + "." + _format[format];
-    //setColour(image);
-    //setLineStyle(image);
+    *gnuplot << "set output \"" << nameFile << "." << _format[format] << "\"\n";
 }
 
-void GnuplotCanvas::setXLabel(Gnuplot& gp, String xLabel)
+void GnuplotCanvas::setXLabel(String xLabel)
 {
-    gp << "set xlabel '" << xLabel << "'\n";
+    *gnuplot << "set xlabel '" << xLabel << "'\n";
 }
 
-void GnuplotCanvas::setYLabel(Gnuplot& gp, String yLabel)
+void GnuplotCanvas::setYLabel(String yLabel)
 {
-    gp << "set ylabel '" << yLabel << "'\n";
+    *gnuplot << "set ylabel '" << yLabel << "'\n";
 }
 
-void GnuplotCanvas::setZLabel(Gnuplot& gp, String zLabel)
+void GnuplotCanvas::setZLabel(String zLabel)
 {
-    gp << "set zlabel '" << zLabel << "'\n";
+    *gnuplot << "set zlabel '" << zLabel << "'\n";
 }
 
-void GnuplotCanvas::setTitle(Gnuplot& gp, String title)
+void GnuplotCanvas::setTitle(String title)
 {
-    gp << "set title '" << title << "'\n";
+    *gnuplot << "set title '" << title << "'\n";
 }
 
-void GnuplotCanvas::setXYZLabel(Gnuplot& gp, String xLabel, String yLabel, String zLabel = "")
+void GnuplotCanvas::setXYZLabel(String xLabel, String yLabel, String zLabel = "")
 {
-    gp << "set xlabel '" << xLabel << "'\n";
-    gp << "set ylabel '" << yLabel << "'\n";
+    *gnuplot << "set xlabel '" << xLabel << "'\n";
+    *gnuplot << "set ylabel '" << yLabel << "'\n";
     
     if (zLabel != "")
     {
-        gp << "set zlabel '" << zLabel << "'\n";
+        *gnuplot << "set zlabel '" << zLabel << "'\n";
     }
 
 }
 
-void GnuplotCanvas::setLabels(Gnuplot& gp, String xLabel, String yLabel, String zLabel, String title)
+void GnuplotCanvas::setLabels(String xLabel, String yLabel, String zLabel, String title)
 {
-    gp << "set xlabel '" << xLabel << "'\n";
-    gp << "set ylabel '" << yLabel << "'\n";
-    gp << "set zlabel '" << zLabel << "'\n";
-    gp << "set title '" << title << "'\n";
+    *gnuplot << "set xlabel '" << xLabel << "'\n";
+    *gnuplot << "set ylabel '" << yLabel << "'\n";
+    *gnuplot << "set zlabel '" << zLabel << "'\n";
+    *gnuplot << "set title '" << title << "'\n";
+}
+
+void GnuplotCanvas::setRange2D(FloatDP minX, FloatDP maxX, FloatDP minY, FloatDP maxY)
+{
+    *gnuplot << "set xrange [" << to_string(minX) <<":" << to_string(maxX) << "] \n";
+    *gnuplot << "set yrange [" << to_string(minY) <<":" << to_string(maxY) << "] \n";
 }
 
 void GnuplotCanvas::setRange2D(_Range2D& range2D, FloatDP maxX, FloatDP maxY)
@@ -1297,58 +1206,72 @@ void GnuplotCanvas::setColour(Image3D& image, _Colours color)
 {
     image.colour = color;
 }
-void GnuplotCanvas::setXLogAxis(Gnuplot& gp)
+void GnuplotCanvas::setXLogAxis()
 {
-    gp << "set logscale x\n";
+    *gnuplot << "set logscale x\n";
 }
 
-void GnuplotCanvas::setYLogAxis(Gnuplot& gp)
+void GnuplotCanvas::setYLogAxis()
 {
-    gp << "set logscale y\n";
+    *gnuplot << "set logscale y\n";
 }
 
-void GnuplotCanvas::setXYLogAxis(Gnuplot& gp)
+void GnuplotCanvas::setXYLogAxis()
 {
-    gp << "set logscale xy\n";
+    *gnuplot << "set logscale xy\n";
 }
 
-void GnuplotCanvas::setXZLogAxis(Gnuplot& gp)
+void GnuplotCanvas::setXZLogAxis()
 {
-    gp << "set logscale xz\n";
+    *gnuplot << "set logscale xz\n";
 }
 
-void GnuplotCanvas::setYZLogAxis(Gnuplot& gp)
+void GnuplotCanvas::setYZLogAxis()
 {
-    gp << "set logscale yz\n";
+    *gnuplot << "set logscale yz\n";
 }
 
-void GnuplotCanvas::setXYZLogAxis(Gnuplot& gp)
+void GnuplotCanvas::setXYZLogAxis()
 {
-    gp << "set logscale xyz\n";
+    *gnuplot << "set logscale xyz\n";
 }
 
-void GnuplotCanvas::setLegend(Gnuplot& gp)
+void GnuplotCanvas::setLegend()
 {
-    gp << "set key default\n";
+    *gnuplot << "set key default\n";
 }
-void GnuplotCanvas::setMap(Gnuplot& gp)
+void GnuplotCanvas::setMap()
 {
-    gp << "set pm3d map\n";
+    *gnuplot << "set pm3d map\n";
 }
-void GnuplotCanvas::set3DPalette(Gnuplot& gp, Image3D& image, FloatDP min, FloatDP max, FloatDP step, bool s)
+void GnuplotCanvas::set3DPalette(Image3D& image, FloatDP min, FloatDP max, FloatDP step, bool s)
 {
     if (s)
     {
         is3DPalette = true;
-        gp << "set cbrange [" << to_string(min) << ":" << to_string(max) << "]\n";
-        gp << "set cbtics " << to_string(step) << "\n";
-        gp << "set palette defined\n";
+        *gnuplot << "set cbrange [" << to_string(min) << ":" << to_string(max) << "]\n";
+        *gnuplot << "set cbtics " << to_string(step) << "\n";
+        *gnuplot << "set palette defined\n";
         image.linestyle3D.style = pm3d;
     }  
 }
-void GnuplotCanvas::unsetColorbox(Gnuplot& gp)
+
+void GnuplotCanvas::set2DPalette(Image2D& image, FloatDP min, FloatDP max, FloatDP step)
 {
-    gp << "unset colorbox\n";
+    is2DPalette = true;
+    *gnuplot << "set cbrange [" << to_string(min) << ":" << to_string(max) << "]\n";
+    *gnuplot << "set cbtics " << to_string(step) << "\n";
+    *gnuplot << "set palette defined\n";    
+}
+
+void GnuplotCanvas::unsetColorbox()
+{
+    *gnuplot << "unset colorbox\n";
+}
+
+void GnuplotCanvas::setXYprojection()
+{
+    *gnuplot << "set view projection xy\n";
 }
 
 #endif // DEBUG

@@ -138,6 +138,7 @@ class Figure
     Void write(const Char* filename, Nat nx, Nat ny) const;
     //! Write to \a filename.
     Void write(const Char* filename) const;
+
   public:
     struct Data;
   public:
