@@ -1,0 +1,18 @@
+Per installare correttamente Gnuplot.
+
+Installare da apt libgd-dev (per poter usufruire png, pdf e gif
+
+sudo apt-get install libgd-dev
+
+Successivamente scaricare il .tar.gz dal sito di Gnuplot (Versione minima 5.0)
+
+https://sourceforge.net/projects/gnuplot/files/gnuplot/5.4.1/
+
+Estrearre in una qualsiasi posizione
+
+Nella cartella estratta eseguire i seguenti comandi per installare gnuplot sulla macchina
+
+./configure
+make
+make check
+make install
