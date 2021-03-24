@@ -77,8 +77,8 @@ template<SizeType N, class X> class Tensor
     DimensionType dimension() const { return _ns.size(); }
     Void draw(CanvasInterface& canvas, const Projection2d& p) const;
     Void draw(CanvasInterface& c, const Variables2d& p) const;
-    Void draw3d(CanvasInterface& canvas, const Projection3d& p) const;
-    Void draw3d(CanvasInterface& c, const Variables3d& p) const;
+    Void draw3d(CanvasInterface& canvas, const Projection3d& p, ProjType proj) const;
+    Void draw3d(CanvasInterface& c, const Variables3d& p, ProjType proj) const;
 
   private: public:
     SizeType _index(Array<SizeType> is) const { SizeType k=0; SizeType r=is[k]; ++k; while(k!=is.size()) { r*=_ns[k]; r+=is[k]; ++k; } return r; }

@@ -16,7 +16,7 @@ namespace Ariadne {
     }
 
     template <SizeType N, class X>
-    Void Tensor<N, X>::draw3d(CanvasInterface& canvas, const Projection3d& p) const {
+    Void Tensor<N, X>::draw3d(CanvasInterface& canvas, const Projection3d& p, ProjType proj) const {
 
     }
 
@@ -35,7 +35,7 @@ namespace Ariadne {
     }
 
     template <>
-    Void Tensor<2, Value<RawFloatType<DoublePrecision>>>::draw3d(CanvasInterface& canvas, const Projection3d& p) const {
+    Void Tensor<2, Value<RawFloatType<DoublePrecision>>>::draw3d(CanvasInterface& canvas, const Projection3d& p, ProjType proj) const {
 
     }
 
@@ -54,7 +54,7 @@ namespace Ariadne {
     }
 
     template <>
-    Void Tensor<2, Value<RawFloatType<MultiplePrecision>>>::draw3d(CanvasInterface& canvas, const Projection3d& p) const {
+    Void Tensor<2, Value<RawFloatType<MultiplePrecision>>>::draw3d(CanvasInterface& canvas, const Projection3d& p, ProjType proj) const {
 
     }
 
@@ -64,18 +64,44 @@ namespace Ariadne {
     }
 
     template <>
-    Void Tensor<3, Value<RawFloatType<DoublePrecision>>>::draw3d(CanvasInterface& canvas, const Projection3d& p) const {
-        for(SizeType frame=0; frame!=_ns[2]; ++frame){
-            SizeType index = _index({0, 0, frame});
-            canvas.move_to(0.0, _a[index].get_d());
-            for(SizeType x2=0; x2!=_ns[1]; ++x2){
-                for(SizeType x1=0; x1!=_ns[0]; ++x1){
-                    index = _index({x1, x2, frame});
-                    canvas.line_to(numeric_cast<double>(x1), _a[index].get_d());
+    Void Tensor<3, Value<RawFloatType<DoublePrecision>>>::draw3d(CanvasInterface& canvas, const Projection3d& p, ProjType proj) const {
+        if(proj == ProjType::no_proj){
+            for(SizeType frame=0; frame!=_ns[2]; ++frame){
+                SizeType index = _index({0, 0, frame});
+                canvas.move_to(0.0, _a[index].get_d());
+                for(SizeType x2=0; x2!=_ns[1]; ++x2){
+                    for(SizeType x1=0; x1!=_ns[0]; ++x1){
+                        index = _index({x1, x2, frame});
+                        canvas.line_to(numeric_cast<double>(x1), _a[index].get_d());
+                    }
+                    canvas.line_to(std::numeric_limits<double>::lowest(), std::numeric_limits<double>::max());
                 }
-                canvas.line_to(std::numeric_limits<double>::lowest(), std::numeric_limits<double>::max());
+                canvas.fill3d();
             }
-            canvas.fill3d();
+        }else if(proj ==ProjType::x1_proj){
+            for(SizeType frame=0; frame!=_ns[2]; ++frame){
+                SizeType index = _index({0, 0, frame});
+                canvas.move_to(0.0, _a[index].get_d());
+                for(SizeType x2=0; x2!=_ns[1]; ++x2){
+                    for(SizeType x1=0; x1!=_ns[0]; ++x1){
+                        index = _index({x1, x2, frame});
+                        canvas.line_to(numeric_cast<double>(x1), _a[index].get_d());
+                    }
+                    canvas.fill();
+                }
+            } 
+        }else if(proj == ProjType::x2_proj){
+            for(SizeType frame=0; frame!=_ns[2]; ++frame){
+                SizeType index = _index({0, 0, frame});
+                canvas.move_to(0.0, _a[index].get_d());
+                for(SizeType x1=0; x1!=_ns[1]; ++x1){
+                    for(SizeType x2=0; x2!=_ns[0]; ++x2){
+                        index = _index({x1, x2, frame});
+                        canvas.line_to(numeric_cast<double>(x1), _a[index].get_d());
+                    }
+                    canvas.fill();
+                }
+            } 
         }
     }
 
@@ -85,8 +111,45 @@ namespace Ariadne {
     }
 
     template <>
-    Void Tensor<3, Value<RawFloatType<MultiplePrecision>>>::draw3d(CanvasInterface& canvas, const Projection3d& p) const {
-
+    Void Tensor<3, Value<RawFloatType<MultiplePrecision>>>::draw3d(CanvasInterface& canvas, const Projection3d& p, ProjType proj) const {
+        if(proj == ProjType::no_proj){
+            for(SizeType frame=0; frame!=_ns[2]; ++frame){
+                SizeType index = _index({0, 0, frame});
+                canvas.move_to(0.0, _a[index].get_d());
+                for(SizeType x2=0; x2!=_ns[1]; ++x2){
+                    for(SizeType x1=0; x1!=_ns[0]; ++x1){
+                        index = _index({x1, x2, frame});
+                        canvas.line_to(numeric_cast<double>(x1), _a[index].get_d());
+                    }
+                    canvas.line_to(std::numeric_limits<double>::lowest(), std::numeric_limits<double>::max());
+                }
+                canvas.fill3d();
+            }
+        }else if(proj ==ProjType::x1_proj){
+            for(SizeType frame=0; frame!=_ns[2]; ++frame){
+                SizeType index = _index({0, 0, frame});
+                canvas.move_to(0.0, _a[index].get_d());
+                for(SizeType x2=0; x2!=_ns[1]; ++x2){
+                    for(SizeType x1=0; x1!=_ns[0]; ++x1){
+                        index = _index({x1, x2, frame});
+                        canvas.line_to(numeric_cast<double>(x1), _a[index].get_d());
+                    }
+                    canvas.fill();
+                }
+            } 
+        }else if(proj == ProjType::x2_proj){
+            for(SizeType frame=0; frame!=_ns[2]; ++frame){
+                SizeType index = _index({0, 0, frame});
+                canvas.move_to(0.0, _a[index].get_d());
+                for(SizeType x1=0; x1!=_ns[1]; ++x1){
+                    for(SizeType x2=0; x2!=_ns[0]; ++x2){
+                        index = _index({x1, x2, frame});
+                        canvas.line_to(numeric_cast<double>(x1), _a[index].get_d());
+                    }
+                    canvas.fill();
+                }
+            } 
+        }
     }
 
 //LABELLED DRAWABLE INTERFACE
@@ -97,7 +160,7 @@ namespace Ariadne {
     }
 
     template <SizeType N, class X>
-    Void Tensor<N, X>::draw3d(CanvasInterface& canvas, const Variables3d& p) const {
+    Void Tensor<N, X>::draw3d(CanvasInterface& canvas, const Variables3d& p, ProjType proj) const {
 
     }
 
@@ -117,7 +180,7 @@ namespace Ariadne {
     }
 
     template <>
-    Void Tensor<2, Value<RawFloatType<DoublePrecision>>>::draw3d(CanvasInterface& canvas, const Variables3d& p) const {
+    Void Tensor<2, Value<RawFloatType<DoublePrecision>>>::draw3d(CanvasInterface& canvas, const Variables3d& p, ProjType proj) const {
 
     }
 
@@ -136,7 +199,7 @@ namespace Ariadne {
     }
 
     template <>
-    Void Tensor<2, Value<RawFloatType<MultiplePrecision>>>::draw3d(CanvasInterface& canvas, const Variables3d& p) const {
+    Void Tensor<2, Value<RawFloatType<MultiplePrecision>>>::draw3d(CanvasInterface& canvas, const Variables3d& p, ProjType proj) const {
 
     }
 
@@ -146,8 +209,45 @@ namespace Ariadne {
     }
 
     template <>
-    Void Tensor<3, Value<RawFloatType<DoublePrecision>>>::draw3d(CanvasInterface& canvas, const Variables3d& p) const {
-
+    Void Tensor<3, Value<RawFloatType<DoublePrecision>>>::draw3d(CanvasInterface& canvas, const Variables3d& p, ProjType proj) const {
+        if(proj == ProjType::no_proj){
+            for(SizeType frame=0; frame!=_ns[2]; ++frame){
+                SizeType index = _index({0, 0, frame});
+                canvas.move_to(0.0, _a[index].get_d());
+                for(SizeType x2=0; x2!=_ns[1]; ++x2){
+                    for(SizeType x1=0; x1!=_ns[0]; ++x1){
+                        index = _index({x1, x2, frame});
+                        canvas.line_to(numeric_cast<double>(x1), _a[index].get_d());
+                    }
+                    canvas.line_to(std::numeric_limits<double>::lowest(), std::numeric_limits<double>::max());
+                }
+                canvas.fill3d();
+            }
+        }else if(proj ==ProjType::x1_proj){
+            for(SizeType frame=0; frame!=_ns[2]; ++frame){
+                SizeType index = _index({0, 0, frame});
+                canvas.move_to(0.0, _a[index].get_d());
+                for(SizeType x2=0; x2!=_ns[1]; ++x2){
+                    for(SizeType x1=0; x1!=_ns[0]; ++x1){
+                        index = _index({x1, x2, frame});
+                        canvas.line_to(numeric_cast<double>(x1), _a[index].get_d());
+                    }
+                    canvas.fill();
+                }
+            } 
+        }else if(proj == ProjType::x2_proj){
+            for(SizeType frame=0; frame!=_ns[2]; ++frame){
+                SizeType index = _index({0, 0, frame});
+                canvas.move_to(0.0, _a[index].get_d());
+                for(SizeType x1=0; x1!=_ns[1]; ++x1){
+                    for(SizeType x2=0; x2!=_ns[0]; ++x2){
+                        index = _index({x1, x2, frame});
+                        canvas.line_to(numeric_cast<double>(x1), _a[index].get_d());
+                    }
+                    canvas.fill();
+                }
+            } 
+        }
     }
 
     template <>
@@ -156,12 +256,44 @@ namespace Ariadne {
     }
 
     template <>
-    Void Tensor<3, Value<RawFloatType<MultiplePrecision>>>::draw3d(CanvasInterface& canvas, const Variables3d& p) const {
-
+    Void Tensor<3, Value<RawFloatType<MultiplePrecision>>>::draw3d(CanvasInterface& canvas, const Variables3d& p, ProjType proj) const {
+        if(proj == ProjType::no_proj){
+            for(SizeType frame=0; frame!=_ns[2]; ++frame){
+                SizeType index = _index({0, 0, frame});
+                canvas.move_to(0.0, _a[index].get_d());
+                for(SizeType x2=0; x2!=_ns[1]; ++x2){
+                    for(SizeType x1=0; x1!=_ns[0]; ++x1){
+                        index = _index({x1, x2, frame});
+                        canvas.line_to(numeric_cast<double>(x1), _a[index].get_d());
+                    }
+                    canvas.line_to(std::numeric_limits<double>::lowest(), std::numeric_limits<double>::max());
+                }
+                canvas.fill3d();
+            }
+        }else if(proj ==ProjType::x1_proj){
+            for(SizeType frame=0; frame!=_ns[2]; ++frame){
+                SizeType index = _index({0, 0, frame});
+                canvas.move_to(0.0, _a[index].get_d());
+                for(SizeType x2=0; x2!=_ns[1]; ++x2){
+                    for(SizeType x1=0; x1!=_ns[0]; ++x1){
+                        index = _index({x1, x2, frame});
+                        canvas.line_to(numeric_cast<double>(x1), _a[index].get_d());
+                    }
+                    canvas.fill();
+                }
+            } 
+        }else if(proj == ProjType::x2_proj){
+            for(SizeType frame=0; frame!=_ns[2]; ++frame){
+                SizeType index = _index({0, 0, frame});
+                canvas.move_to(0.0, _a[index].get_d());
+                for(SizeType x1=0; x1!=_ns[1]; ++x1){
+                    for(SizeType x2=0; x2!=_ns[0]; ++x2){
+                        index = _index({x1, x2, frame});
+                        canvas.line_to(numeric_cast<double>(x1), _a[index].get_d());
+                    }
+                    canvas.fill();
+                }
+            } 
+        }
     }
-
-
-
-
-
 }
