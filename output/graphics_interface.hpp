@@ -56,6 +56,8 @@ struct Projection3d;
 struct Variables2d;
 struct Variables3d;
 
+enum class ProjType{ no_proj, x1_proj, x2_proj };
+
 struct Projection2d {
     DimensionType n, i, j;
     Projection2d(DimensionType nn, DimensionType ii, DimensionType jj) : n(nn), i(ii), j(jj) { }
@@ -145,8 +147,11 @@ class CanvasInterface {
     virtual Void set_fill_colour(double r, double g, double b) = 0;
 
     //Gnuplot animation
-    virtual Void set_3d_palette() = 0;  //TODO
-    virtual Void fill3d() = 0;          //TODO
+    virtual Void set_3d_palette() = 0;  
+    virtual Void set_2d_palette() = 0;
+    virtual Void fill3d() = 0;   
+    virtual Void set_map() = 0;
+    virtual Void is_std() = 0;
   /*
     virtual Void plot_data(Array<double> data) = 0;
     virtual Void plot_bounds(Array<Array<double>> bounds) = 0;
@@ -193,7 +198,8 @@ class DrawableInterface3d {
     //! brief Make a dynamically-allocated copy.
     virtual DrawableInterface3d* clone() const = 0;
     //! brief Draw the object on the canvas \a c using line segments and fill/stroke commands.
-    virtual Void draw3d(CanvasInterface& c, const Projection3d& p) const = 0;
+    virtual Void draw3d(CanvasInterface& c, const Projection3d& p, ProjType proj) const = 0;
+
     //! brief The dimension of the object in Euclidean space
     virtual DimensionType dimension() const = 0;
 };
@@ -221,7 +227,8 @@ class LabelledDrawableInterface3d {
     //! brief Make a dynamically-allocated copy.
     virtual LabelledDrawableInterface3d* clone() const = 0;
     //! brief Draw the projection of object onto variables \a p on the canvas \a c .
-    virtual Void draw3d(CanvasInterface& c, const Variables3d& p) const = 0;
+    virtual Void draw3d(CanvasInterface& c, const Variables3d& p, ProjType proj) const = 0;
+
 };
 
 } // namespace Ariadne

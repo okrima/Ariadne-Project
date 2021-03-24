@@ -78,7 +78,12 @@ class CairoCanvas
     Void set_fill_colour(double r, double g, double b);
 
     Void set_3d_palette();
+    Void set_2d_palette();
     Void fill3d();
+    Void fill_projection();
+    Void set_map();
+    Void is_std();
+     
     
 /*  //GNUPLOT NOT IMPLEMENTED
     Void plot_tensor_2d_image(Tensor<2, double> tensor);

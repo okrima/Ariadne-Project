@@ -75,6 +75,7 @@ private:
     bool is3DPalette;
     _Labels labels;
     GnuplotFileType fileType;
+    Bool isStd;
 
 private:
     Void plot_2d(Array<double> data);
@@ -109,8 +110,13 @@ public:
     Box2d bounds() const;
 
     Void set_3d_palette();
+    Void set_2d_palette();
     Void fill3d();
+    Void fill_projection();
+    Void set_map();
+    Void is_std();
 
+/*
     Void plot_data(Array<double> data);
     Void plot_bounds(Array<Array<double>> bounds);
     Void plot_tensor_2d_image(Tensor<2, double> tensor);
@@ -118,6 +124,7 @@ public:
     Void plot_xy_projection(Tensor<3, double> tensor);
     Void plot_yz_projection(Tensor<3, double> tensor);
     Void plot_xz_projection(Tensor<3, double> tensor);
+*/
     //CanvasInterface
 
     //Set Multiplot - Multiple plot on same screen
@@ -154,8 +161,6 @@ public:
     void set_xyz_log_axis();
     // Set Legend
     void set_legend();
-    // Set View Projection of a 3D rapresentation
-    void set_map();
     //Set 3D palette
     void set_3d_palette(double min, double max, double step);
     //Set 2D palette

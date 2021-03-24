@@ -179,6 +179,10 @@ Void draw(Figure& fig, const DrawableInterface& shape) {
     fig.draw(shape);
 }
 
+Void draw3d(Figure& fig, const DrawableInterface3d& shape) {
+    fig.draw3d(shape);
+}
+
 Void draw(Figure& fig, FloatDPApproximateBox const& box) {
     fig.draw(box);
 }
@@ -196,8 +200,11 @@ struct GraphicsObject {
 struct LabelledGraphicsObject {
     LabelledGraphicsObject(const GraphicsProperties& gp, const LabelledDrawableInterface& sh)
         : properties(gp), shape_ptr(sh.clone()) { }
+    LabelledGraphicsObject(const GraphicsProperties& gp, const LabelledDrawableInterface3d& sh)
+        : properties(gp), shape3d_ptr(sh.clone()) { }
     GraphicsProperties properties;
     std::shared_ptr<const LabelledDrawableInterface> shape_ptr;
+    std::shared_ptr<const LabelledDrawableInterface3d> shape3d_ptr;
 };
 
 struct Figure::Data
@@ -540,12 +547,29 @@ Void Figure::_paint3d(CanvasInterface& canvas) const
     String tz=String("x")+to_str(projection.z_coordinate());
 
     canvas.initialise(tx, ty, tz, xl, xu, yl, yu, zl, zu);
-    canvas.set_3d_palette();
+    if(!this->_data->properties.isProj){
+        canvas.set_3d_palette();
+    }else if (this->_data->properties.isXY){
+        canvas.set_3d_palette();
+        canvas.set_map();
+    }else if(this->_data->properties.isYZ){
+        canvas.initialise(ty, tz, yl, yu, zl, zu);
+        canvas.set_2d_palette();
+    }else if(this->_data->properties.isXZ) {
+        canvas.initialise(tx, tz, xl, xu, zl, zu);
+        canvas.set_2d_palette();
+    }
 
     for(const GraphicsObject& object : this->_data->objects) {
         const DrawableInterface3d& shape=object.shape3d_ptr.operator*();
         set_properties(canvas, object.properties);
-        shape.draw3d(canvas, this->_data->projection3d);
+        if(this->_data->properties.isXZ) { 
+            shape.draw3d(canvas, this->_data->projection3d, ProjType::x1_proj); 
+        }else if(this->_data->properties.isYZ) { 
+            shape.draw3d(canvas, this->_data->projection3d, ProjType::x2_proj); 
+        }else {
+            shape.draw3d(canvas, this->_data->projection3d, ProjType::no_proj);
+        }
     }
 }
 
@@ -587,6 +611,7 @@ Void Figure::_paint_all(CanvasInterface& canvas) const
     String tx=String("x")+to_str(projection.x_coordinate());
     String ty=String("x")+to_str(projection.y_coordinate());
 
+    canvas.is_std();
     canvas.initialise(tx,ty,xl,xu,yl,yu);
 
     // Draw shapes
@@ -805,6 +830,12 @@ LabelledFigure& LabelledFigure::draw(const LabelledDrawableInterface& shape)
     this->_data->objects.push_back(LabelledGraphicsObject(this->_data->properties,shape)); return *this;
 }
 
+LabelledFigure& LabelledFigure::draw3d(const LabelledDrawableInterface3d& shape)
+{
+    this->_data->properties.is3D = true;
+    this->_data->objects.push_back(LabelledGraphicsObject(this->_data->properties,shape)); return *this;
+}
+
 LabelledFigure& LabelledFigure::clear() {
     this->_data->objects.clear(); return *this;
 }
@@ -886,7 +917,38 @@ Void LabelledFigure::_paint3d(CanvasInterface& canvas) const
     Dbl zl=numeric_cast<Dbl>(bounds[z].lower_bound());
     Dbl zu=numeric_cast<Dbl>(bounds[z].upper_bound());   
 
+    SizeType total_objects = this->_data->objects.size();
+    SizeType processed_objects = 0;
+    ProgressIndicator indicator(total_objects);
+
     canvas.initialise(tx, ty, tz, xl, xu, yl, yu, zl, zu);
+    if(!this->_data->properties.isProj){
+        canvas.set_3d_palette();
+    }else if (this->_data->properties.isXY){
+        canvas.set_3d_palette();
+        canvas.set_map();
+    }else if(this->_data->properties.isYZ){
+        canvas.initialise(ty, tz, yl, yu, zl, zu);
+        canvas.set_2d_palette();
+    }else if(this->_data->properties.isXZ) {
+        canvas.initialise(tx, tz, xl, xu, zl, zu);
+        canvas.set_2d_palette();
+    }
+
+    for(const LabelledGraphicsObject& object : this->_data->objects) {
+        const LabelledDrawableInterface3d& shape=object.shape3d_ptr.operator*();
+        set_properties(canvas, object.properties);
+        if(this->_data->properties.isXZ) { 
+            shape.draw3d(canvas, this->_data->variables3d, ProjType::x1_proj); 
+        }else if(this->_data->properties.isYZ) { 
+            shape.draw3d(canvas, this->_data->variables3d, ProjType::x2_proj); 
+        }else {
+            shape.draw3d(canvas, this->_data->variables3d, ProjType::no_proj);
+        }
+        indicator.update_current(processed_objects++);
+    }
+
+
 }
 
 Void LabelledFigure::_paint_all(CanvasInterface& canvas) const
@@ -906,6 +968,7 @@ Void LabelledFigure::_paint_all(CanvasInterface& canvas) const
     Dbl yl=numeric_cast<Dbl>(bounds[y].lower_bound());
     Dbl yu=numeric_cast<Dbl>(bounds[y].upper_bound());
 
+    canvas.is_std();
     canvas.initialise(tx,ty,xl,xu,yl,yu);
     // Draw shapes
     SizeType total_objects = this->_data->objects.size();
@@ -973,9 +1036,9 @@ Void
 LabelledFigure::write(const Char* cfilename, Nat drawing_width, Nat drawing_height, GnuplotFileType fileType) const
 {
     SharedPointer<CanvasInterface> canvas=make_canvas(cfilename, drawing_width,drawing_height, fileType);
-    
+
     if(this->_data->properties.is3D){
-        //this->_paint_3d(*canvas);
+        this->_paint3d(*canvas);
     }else{
         this->_paint2d(*canvas);
     }
@@ -1299,18 +1362,11 @@ Void CairoCanvas::finalise()
 }
 
 Void CairoCanvas::set_3d_palette() { ARIADNE_NOT_IMPLEMENTED; }
+Void CairoCanvas::set_2d_palette() { ARIADNE_NOT_IMPLEMENTED; }
 Void CairoCanvas::fill3d() { ARIADNE_NOT_IMPLEMENTED; }
-
-
-/*
-Void CairoCanvas::plot_data(Array<double> data)                  { ARIADNE_NOT_IMPLEMENTED; }
-Void CairoCanvas::plot_tensor_2d_image(Tensor<2, double> tensor)   { ARIADNE_NOT_IMPLEMENTED; }
-Void CairoCanvas::plot_tensor_3d_image(Tensor<3, double> tensor)   { ARIADNE_NOT_IMPLEMENTED; }
-Void CairoCanvas::plot_xy_projection(Tensor<3, double> tensor)    { ARIADNE_NOT_IMPLEMENTED; } 
-Void CairoCanvas::plot_xz_projection(Tensor<3, double> tensor)    { ARIADNE_NOT_IMPLEMENTED; } 
-Void CairoCanvas::plot_yz_projection(Tensor<3, double> tensor)    { ARIADNE_NOT_IMPLEMENTED; } 
-Void CairoCanvas::plot_bounds(Array<Array<double>> bounds)       { ARIADNE_NOT_IMPLEMENTED; }
-*/
+Void CairoCanvas::fill_projection() { ARIADNE_NOT_IMPLEMENTED; }
+Void CairoCanvas::set_map() { ARIADNE_NOT_IMPLEMENTED; }
+Void CairoCanvas::is_std() { ARIADNE_NOT_IMPLEMENTED; }
 
 #endif
 
@@ -1326,7 +1382,8 @@ GnuplotCanvas::GnuplotCanvas(String cfilename, GnuplotFileType typeFile, Nat X, 
                                             sizeY(Y),
                                             isMultiplot(false),
                                             is2DPalette(false),
-                                            is3DPalette(false)
+                                            is3DPalette(false),
+                                            isStf(false)
 
 {
     gnuplot = new Gnuplot("tee "+cfilename+".gnu | gnuplot > /dev/null 2>&1");
@@ -1409,7 +1466,6 @@ void GnuplotCanvas::dot(double x, double y)
 
 void GnuplotCanvas::fill()
 {   
-    //this->setMultiplot(true);
     char hex_string[20];
     if (this->isdot)
     {
@@ -1417,8 +1473,9 @@ void GnuplotCanvas::fill()
     }
     else
     {
-        //if(this->is_fill){
-            *gnuplot << "plot '-' w filledcurves ";
+        *gnuplot << "plot '-' ";
+        if(!is2DPalette){
+            *gnuplot << "w filledcurves ";
             *gnuplot << "fc rgb \"#";
             if (this->fc.red < 9) { *gnuplot << "0" << this->fc.red;}
             else if (this->fc.red > 255){ *gnuplot << "FF";}
@@ -1438,7 +1495,6 @@ void GnuplotCanvas::fill()
                 *gnuplot <<hex_string;
                 }
             *gnuplot << "\" ";
-
             *gnuplot << "fs solid " << this->fc.opacity << " border ";
             *gnuplot << "lc rgb \"#";
             if (this->lc.red < 9) { *gnuplot << "0" << this->lc.red;}
@@ -1459,50 +1515,21 @@ void GnuplotCanvas::fill()
                 *gnuplot <<hex_string;
                 }
             *gnuplot << "\"\n";
-
-            for (SizeType i = 0; i < this->dim; i++)
-            {
-                *gnuplot << to_string(this->geom[i].x) << " " << to_string(this->geom[i].y) << "\n";
-            }
-            *gnuplot << "e\n"; 
-        //}
-        //if(this->lw == 0){}
-        //else{
-        /*
-            *gnuplot << "plot '-' w lines";
-            *gnuplot << " lc rgb\"#";
-            if (this->lc.red < 9) { *gnuplot << "0" << this->lc.red;}
-            else if (this->lc.red > 255){ *gnuplot << "FF";}
-            else{   
-                sprintf(hex_string, "%X", std::make_unsigned<int>::type(this->lc.red)); 
-                *gnuplot << hex_string;
-                }
-            if (this->lc.green < 9) { *gnuplot << "0" << this->lc.green;}
-            else if (this->lc.green > 255){ *gnuplot << "FF";}
-            else{
-                sprintf(hex_string, "%X", std::make_unsigned<int>::type(this->lc.green)); 
-                *gnuplot << hex_string;
-                }
-            if (this->lc.blue < 9) { *gnuplot << "0" << this->lc.blue;}
-            else if (this->lc.blue > 255){ *gnuplot << "FF";}
-            else{sprintf(hex_string, "%X", std::make_unsigned<int>::type(this->lc.blue)); 
-                *gnuplot <<hex_string;
-                }
-            *gnuplot << "\" ";
-
-            *gnuplot << "lw " << to_string(this->lw);
-
-            *gnuplot << "\n";
-            for (SizeType i = 0; i < this->dim; i++)
-            {
-                *gnuplot << to_string(this->geom[i].x) << " " << to_string(this->geom[i].y) << "\n";
-            }
-            *gnuplot << to_string(this->geom[0].x) << " " << to_string(this->geom[0].y) << "\n";
-            *gnuplot << "e\n"; 
-        */
+        }else{
+            *gnuplot << "u ::1 w lines lw " << to_string(this->lw) << " linecolor palette\n";
         }
-
-        this->dim = 0;      
+ 
+        for (SizeType i = 0; i < this->dim; i++)
+        {
+            if(isStd){
+                *gnuplot << to_string(this->geom[i].x) << " " << to_string(this->geom[i].y) << "\n";
+            }else{
+                *gnuplot << to_string(this->geom[i].y) << "\n";
+            }
+        } 
+    }
+    *gnuplot << "e\n";
+    this->dim = 0;      
 }
 
 Void GnuplotCanvas::fill3d(){
@@ -1513,62 +1540,22 @@ Void GnuplotCanvas::fill3d(){
     }
     else{
             *gnuplot << "splot '-' w pm3d ";
-        /*  *gnuplot << "fc rgb \"#";
-            if (this->fc.red < 9) { *gnuplot << "0" << this->fc.red;}
-            else if (this->fc.red > 255){ *gnuplot << "FF";}
-            else{   
-                sprintf(hex_string, "%X", std::make_unsigned<int>::type(this->fc.red)); 
-                *gnuplot << hex_string;
-                }
-            if (this->fc.green < 9) { *gnuplot << "0" << this->fc.green;}
-            else if (this->fc.green > 255){ *gnuplot << "FF";}
-            else{
-                sprintf(hex_string, "%X", std::make_unsigned<int>::type(this->fc.green)); 
-                *gnuplot << hex_string;
-                }
-            if (this->fc.blue < 9) { *gnuplot << "0" << this->fc.blue;}
-            else if (this->fc.blue > 255){ *gnuplot << "FF";}
-            else{sprintf(hex_string, "%X", std::make_unsigned<int>::type(this->fc.blue)); 
-                *gnuplot <<hex_string;
-                }
-            *gnuplot << "\" ";
-
-            *gnuplot << "fs solid " << this->fc.opacity << " border ";
-            *gnuplot << "lc rgb \"#";
-            if (this->lc.red < 9) { *gnuplot << "0" << this->lc.red;}
-            else if (this->lc.red > 255){ *gnuplot << "FF";}
-            else{   
-                sprintf(hex_string, "%X", std::make_unsigned<int>::type(this->lc.red)); 
-                *gnuplot << hex_string;
-                }
-            if (this->lc.green < 9) { *gnuplot << "0" << this->lc.green;}
-            else if (this->lc.green > 255){ *gnuplot << "FF";}
-            else{
-                sprintf(hex_string, "%X", std::make_unsigned<int>::type(this->lc.green)); 
-                *gnuplot << hex_string;
-                }
-            if (this->lc.blue < 9) { *gnuplot << "0" << this->lc.blue;}
-            else if (this->lc.blue > 255){ *gnuplot << "FF";}
-            else{sprintf(hex_string, "%X", std::make_unsigned<int>::type(this->lc.blue)); 
-                *gnuplot <<hex_string;
-                }
-            
-            *gnuplot << "\"\n";
-        */
             *gnuplot << "\n";
             for (SizeType i = 0; i < this->dim; i++)
             {
                 if(this->geom[i].x == std::numeric_limits<double>::lowest() && this->geom[i].y == std::numeric_limits<double>::max()){
                     *gnuplot << "\n";
                 }else{
-                    *gnuplot << /*to_string(this->geom[i].x) << " " << */to_string(this->geom[i].y) << "\n";
+                    *gnuplot << to_string(this->geom[i].y) << "\n";
                 }
             }
             *gnuplot << "e\n";  
     }
     this->dim = 0; 
 }
-
+Void is_std() {
+    this->isStd = true;
+}
 void GnuplotCanvas::write(const char* filename) const
 {
     *gnuplot << "quit\n";
@@ -1608,6 +1595,14 @@ void GnuplotCanvas::set_fill_colour(double _r, double _g, double _b)
 Void GnuplotCanvas::set_3d_palette()
 {
     is3DPalette = true;
+    *gnuplot << "set cbrange [" << to_string(-0.5) << ":" << to_string(1) << "]\n";
+    *gnuplot << "set cbtics " << to_string(0.2) << "\n";
+    *gnuplot << "set palette defined\n";
+}
+
+Void GnuplotCanvas::set_2d_palette()
+{
+    is2DPalette = true;
     *gnuplot << "set cbrange [" << to_string(-0.5) << ":" << to_string(1) << "]\n";
     *gnuplot << "set cbtics " << to_string(0.2) << "\n";
     *gnuplot << "set palette defined\n";

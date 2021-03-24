@@ -420,6 +420,7 @@ class LabelledFigure {
 
     //! Add a set to draw onto the figure.
     LabelledFigure& draw(const LabelledDrawableInterface& shape);
+    LabelledFigure& draw3d(const LabelledDrawableInterface3d& shape);
 
 /*
     template<typename T>
