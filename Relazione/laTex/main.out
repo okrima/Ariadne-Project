@@ -1,0 +1,24 @@
+\BOOKMARK [1][-]{section.1}{Gnuplot}{}% 1
+\BOOKMARK [2][-]{subsection.1.1}{Installazione}{section.1}% 2
+\BOOKMARK [2][-]{subsection.1.2}{Funzionamento}{section.1}% 3
+\BOOKMARK [1][-]{section.2}{Obiettivi}{}% 4
+\BOOKMARK [2][-]{subsection.2.1}{Motivazioni}{section.2}% 5
+\BOOKMARK [2][-]{subsection.2.2}{Equazione dell'onda}{section.2}% 6
+\BOOKMARK [3][-]{subsubsection.2.2.1}{Due dimensioni: Spazio x1 - Tempo t}{subsection.2.2}% 7
+\BOOKMARK [3][-]{subsubsection.2.2.2}{Tre dimensioni: Spazio x1 - Spazio x2 - Tempo t}{subsection.2.2}% 8
+\BOOKMARK [1][-]{section.3}{Implementazione}{}% 9
+\BOOKMARK [2][-]{subsection.3.1}{Gnuplot-iostream}{section.3}% 10
+\BOOKMARK [2][-]{subsection.3.2}{Interfacciamento verso la libreria Ariadne}{section.3}% 11
+\BOOKMARK [2][-]{subsection.3.3}{Estensione della classe DrawableInterface e integrazione di Tensor}{section.3}% 12
+\BOOKMARK [2][-]{subsection.3.4}{Estensione della classe Figure}{section.3}% 13
+\BOOKMARK [2][-]{subsection.3.5}{Creazione del file di dump}{section.3}% 14
+\BOOKMARK [1][-]{section.4}{TEST}{}% 15
+\BOOKMARK [2][-]{subsubsection.4.0.1}{Generazione di un punto}{section.4}% 16
+\BOOKMARK [3][-]{subsubsection.4.0.2}{Generazione di una linea}{subsubsection.4.0.1}% 17
+\BOOKMARK [3][-]{subsubsection.4.0.3}{Animazione di una corda vibrante secondo l'equazione dell'onda}{subsubsection.4.0.1}% 18
+\BOOKMARK [3][-]{subsubsection.4.0.4}{Generazione di una gaussiana a tre dimensioni}{subsubsection.4.0.1}% 19
+\BOOKMARK [3][-]{subsubsection.4.0.5}{Proiezione X0X1 di una gaussiana a tre dimensioni}{subsubsection.4.0.1}% 20
+\BOOKMARK [3][-]{subsubsection.4.0.6}{Proiezione X0X2 di una gaussiana a tre dimensioni}{subsubsection.4.0.1}% 21
+\BOOKMARK [3][-]{subsubsection.4.0.7}{Proiezione X1X2 di una gaussiana a tre dimensioni}{subsubsection.4.0.1}% 22
+\BOOKMARK [3][-]{subsubsection.4.0.8}{Animazione di una gaussiana a tre dimensioni secondo l'equazione dell'onda}{subsubsection.4.0.1}% 23
+\BOOKMARK [1][-]{section.5}{CONCLUSIONE E SVILUPPI FUTURI}{}% 24
